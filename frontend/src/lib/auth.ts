@@ -16,16 +16,16 @@ export async function signToken(payload: any): Promise<string> {
     .sign(JWT_SECRET);
 }
 
-export async function verifyToken(token: string): Promise<{ email: string } | null> {
+export async function verifyToken(token: string): Promise<{ username: string } | null> {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    return payload as { email: string };
+    return payload as { username: string };
   } catch (err) {
     return null;
   }
 }
 
-export async function getAdminSession(): Promise<{ email: string } | null> {
+export async function getAdminSession(): Promise<{ username: string } | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
   if (!token) return null;

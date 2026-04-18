@@ -2,12 +2,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiUser, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
 
 export default function AdminLoginPage() {
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [form, setForm] = useState({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -56,15 +56,15 @@ export default function AdminLoginPage() {
 
         <form onSubmit={handleSubmit} className="bg-[#111] border border-gray-800 rounded-2xl p-8 space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1.5">Email</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1.5">Username</label>
             <div className="relative">
-              <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+              <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
               <input
-                type="email"
+                type="text"
                 required
-                value={form.email}
-                onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-                placeholder="admin@example.com"
+                value={form.username}
+                onChange={e => setForm(p => ({ ...p, username: e.target.value }))}
+                placeholder="Admin username"
                 className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#0a0a0a] border border-gray-700 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500/30 text-white text-sm transition-all"
               />
             </div>

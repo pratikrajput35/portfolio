@@ -21,6 +21,7 @@ const navItems = [
   { href: '/admin/about', label: 'About Me', icon: FiUser },
   { href: '/admin/content', label: 'Site Content', icon: FiSettings },
   { href: '/admin/contacts', label: 'Contacts', icon: FiMail },
+  { href: '/admin/admins', label: 'Admins', icon: FiUser },
 ];
 
 function SidebarLink({ href, label, icon: Icon, isActive, onClick }: any) {

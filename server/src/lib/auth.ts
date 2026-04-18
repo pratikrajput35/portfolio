@@ -17,10 +17,10 @@ export async function signToken(payload: Record<string, unknown>): Promise<strin
     .sign(JWT_SECRET);
 }
 
-export async function verifyToken(token: string): Promise<{ email: string; role: string } | null> {
+export async function verifyToken(token: string): Promise<{ username: string; role: string } | null> {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    return payload as { email: string; role: string };
+    return payload as { username: string; role: string };
   } catch {
     return null;
   }

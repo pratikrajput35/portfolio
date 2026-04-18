@@ -70,9 +70,28 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   res.status(500).json({ error: err.message || 'Internal server error' });
 });
 
+// User/Admin Model
+import Admin from './models/Admin';
+import bcrypt from 'bcryptjs';
+
 // ─── Start ────────────────────────────────────────────────────────────────────
 async function start() {
   await connectDB();
+  
+  // Seed initial Admin if no admins exist
+  try {
+    const count = await Admin.countDocuments();
+    if (count === 0) {
+      console.log('No admins found in DB. Seeding default admin...');
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash('BraveHeer@2004', salt);
+      await Admin.create({ username: 'Brave@Pratik', passwordHash });
+      console.log('Default admin seeded: Brave@Pratik');
+    }
+  } catch (err) {
+    console.error('Error seeding default admin:', err);
+  }
+
   app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
     console.log(`   Allowed origins: ${allowedOrigins.join(', ')}`);
