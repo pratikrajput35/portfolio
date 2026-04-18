@@ -1,0 +1,120 @@
+{
+  "heroHeadline": "Creative Designer & Video Editor",
+  "heroSubheadline": "Crafting visual experiences that captivate and convert.",
+  "heroCtaText": "View My Work ",
+  "heroCtaLink": "/portfolio",
+  "heroSecondaryCtaText": "Get In Touch",
+  "heroSecondaryCtaLink": "/contact",
+  "aboutName": "Pratik Rajput",
+  "aboutTitle": "Creative Designer & Video Editor",
+  "aboutBio": "I'm a passionate creative professional specializing in graphic design and video editing. With 3+ years of experience, I've helped brands tell their stories through stunning visuals and compelling video content.",
+  "skills": [
+    "Adobe Photoshop",
+    "Illustrator",
+    "After Effects",
+    "Premiere Pro",
+    "Figma",
+    "DaVinci Resolve"
+  ],
+  "showTestimonials": true,
+  "showBlog": false,
+  "showServices": true,
+  "showFeaturedProjects": true,
+  "showNewsletter": false,
+  "footerText": "© 2025 Pratik Rajput. All rights reserved.",
+  "contactHeadline": "Contact Me",
+  "contactDescription": "Have a project in mind? Let's talk about it.",
+  "contactTitle": "Let's Work Together",
+  "instagram": "https://www.instagram.com/rajput_pratik_01/",
+  "youtube": "https://www.youtube.com/@PRATIKRAJPUT01",
+  "linkedin": "",
+  "behance": "https://www.behance.net/pratikrajput2",
+  "twitter": "",
+  "whatsapp": "+919136543329",
+  "email": "pratikrajput453@gmail.com",
+  "phone": "+919136543329",
+  "location": "India (Remote Worldwide)",
+  "seoTitle": "Pratik Rajput | Graphic Designer, Video Editor & Creative Visual Artist",
+  "seoDescription": "Creative graphic designer and video editor specializing in branding, social media content, and high-quality visual storytelling. View my portfolio and work.",
+  "seoKeywords": "Pratik Rajput, graphic designer, video editor, freelance designer, video editing services, branding design, social media design, motion graphics, creative designer, portfolio website, freelance video editor, visual storytelling, logo design, content creator",
+  "pricingTiers": [
+    {
+      "name": "Starter",
+      "price": "₹5,000",
+      "features": [
+        "Logo Design",
+        "2 Revisions",
+        "PNG/SVG files",
+        "3 day delivery"
+      ],
+      "isPopular": false
+    },
+    {
+      "name": "Professional",
+      "price": "₹12,000",
+      "features": [
+        "Full Brand Identity",
+        "5 Revisions",
+        "Brand Guidelines",
+        "Social Media Kit",
+        "7 day delivery"
+      ],
+      "isPopular": true
+    },
+    {
+      "name": "Premiumu",
+      "price": "₹25,000",
+      "features": [
+        "Complete Branding",
+        "Unlimited Revisions",
+        "All file formats",
+        "Motion logo",
+        "Priority support"
+      ],
+      "isPopular": false
+    }
+  ],
+  "experience": [
+    {
+      "year": "2023-Present",
+      "title": "Social Media Designer",
+      "description": "I work for a Page to create Educational posts"
+    }
+  ],
+  "aboutImage": "https://res.cloudinary.com/dml2y9sno/image/upload/v1774077903/portfolio/about/lubom5j1yhdgcbbpfuxe.jpg",
+  "updatedAt": "2026-04-12T06:56:25.768Z",
+  "aboutStats": [
+    {
+      "value": 13,
+      "suffix": "+",
+      "label": "Projects"
+    },
+    {
+      "value": 4,
+      "suffix": "+",
+      "label": "Clients"
+    },
+    {
+      "value": 2,
+      "suffix": "+",
+      "label": "Experience"
+    }
+  ],
+  "customSkills": [
+    {
+      "name": "Adobe Photoshop",
+      "percentage": 80,
+      "icon": "photoshop"
+    },
+    {
+      "name": "Davinci Resolve",
+      "percentage": 85,
+      "icon": "davinci"
+    },
+    {
+      "name": "Canva",
+      "percentage": 70,
+      "icon": "canva"
+    }
+  ]
+}
