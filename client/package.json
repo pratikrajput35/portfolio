@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@hello-pangea/dnd": "^17.0.0",
+    "@netlify/plugin-nextjs": "^5.15.9",
     "@types/nodemailer": "^8.0.0",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.6.0",
