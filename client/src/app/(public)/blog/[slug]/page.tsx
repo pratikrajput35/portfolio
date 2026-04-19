@@ -1,4 +1,5 @@
 'use client';
+import { use } from 'react';
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { motion } from 'framer-motion';
@@ -6,16 +7,17 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { FiArrowLeft, FiClock, FiTag } from 'react-icons/fi';
 
-export default function BlogPostPage({ params }: { params: { slug: string } }) {
+export default function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params);
   const [post, setPost] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api(`/api/blog/${params.slug}`)
+    api(`/api/blog/${slug}`)
       .then(r => r.json())
       .then(d => { setPost(d); setLoading(false); })
       .catch(() => setLoading(false));
-  }, [params.slug]);
+  }, [slug]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>;
   if (!post || post.error) return (
