@@ -1,8 +1,16 @@
-.env.local
-.env
-node_modules/
-.next/
-out/
-dist/
+# Client (Next.js)
+client/.next/
+client/node_modules/
+client/.env.local
+client/out/
+client/dist/
+
+# Server (Express)
+server/node_modules/
+server/dist/
+server/.env
+server/data/*.json
+
+# Common
 *.log
 .DS_Store
