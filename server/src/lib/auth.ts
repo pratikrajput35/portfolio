@@ -26,10 +26,16 @@ export async function verifyToken(token: string): Promise<{ username: string; ro
   }
 }
 
-// Express middleware: protect routes with Authorization: Bearer <token>
+// Express middleware: protect routes — reads cookie or Authorization: Bearer <token>
 export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+  // 1. Try Authorization header (Bearer token)
   const authHeader = req.headers.authorization;
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  let token: string | null = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
+  // 2. Fall back to httpOnly cookie set on login
+  if (!token) {
+    token = (req as any).cookies?.portfolio_admin_token ?? null;
+  }
 
   if (!token) {
     res.status(401).json({ error: 'Unauthorized' });
