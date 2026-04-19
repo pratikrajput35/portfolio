@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -43,8 +43,22 @@ function SidebarLink({ href, label, icon: Icon, isActive, onClick }: any) {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+
+  // ── Client-side auth guard ─────────────────────────────────────────────────
+  // Middleware cannot read cross-domain cookies (Express on Render ≠ Netlify),
+  // so we protect admin routes here instead.
+  useEffect(() => {
+    if (pathname === '/admin/login') { setAuthChecked(true); return; }
+    api('/api/auth/me')
+      .then(res => {
+        if (!res.ok) router.replace('/admin/login');
+        else setAuthChecked(true);
+      })
+      .catch(() => router.replace('/admin/login'));
+  }, [pathname, router]);
 
   const handleLogout = async () => {
     await api('/api/auth/logout', { method: 'POST' });
@@ -91,54 +105,63 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex">
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-60 bg-[#111] border-r border-gray-800 fixed left-0 top-0 bottom-0 z-40">
-        {sidebarContent}
-      </aside>
+      {/* Auth gate: show spinner until auth check completes */}
+      {!authChecked && pathname !== '/admin/login' ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : (
+        <>
+          {/* Desktop Sidebar */}
+          <aside className="hidden lg:flex flex-col w-60 bg-[#111] border-r border-gray-800 fixed left-0 top-0 bottom-0 z-40">
+            {sidebarContent}
+          </aside>
 
-      {/* Mobile Sidebar Overlay */}
-      <AnimatePresence>
-        {sidebarOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 z-40 lg:hidden"
-              onClick={() => setSidebarOpen(false)}
-            />
-            <motion.aside
-              initial={{ x: -240 }}
-              animate={{ x: 0 }}
-              exit={{ x: -240 }}
-              transition={{ type: 'spring', damping: 25 }}
-              className="fixed left-0 top-0 bottom-0 w-60 bg-[#111] border-r border-gray-800 z-50 lg:hidden flex flex-col"
-            >
-              {sidebarContent}
-            </motion.aside>
-          </>
-        )}
-      </AnimatePresence>
+          {/* Mobile Sidebar Overlay */}
+          <AnimatePresence>
+            {sidebarOpen && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-black/60 z-40 lg:hidden"
+                  onClick={() => setSidebarOpen(false)}
+                />
+                <motion.aside
+                  initial={{ x: -240 }}
+                  animate={{ x: 0 }}
+                  exit={{ x: -240 }}
+                  transition={{ type: 'spring', damping: 25 }}
+                  className="fixed left-0 top-0 bottom-0 w-60 bg-[#111] border-r border-gray-800 z-50 lg:hidden flex flex-col"
+                >
+                  {sidebarContent}
+                </motion.aside>
+              </>
+            )}
+          </AnimatePresence>
 
-      {/* Main Content */}
-      <div className="flex-1 lg:pl-60">
-        {/* Top Bar */}
-        <header className="sticky top-0 z-30 bg-[#0a0a0a]/90 backdrop-blur-xl border-b border-gray-800 h-14 flex items-center px-4 gap-4">
-          <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-gray-400 hover:text-white">
-            <FiMenu size={22} />
-          </button>
-          <div className="flex-1">
-            <span className="text-sm text-gray-400">
-              {navItems.find(n => n.href === pathname)?.label || 'Admin'}
-            </span>
+          {/* Main Content */}
+          <div className="flex-1 lg:pl-60">
+            {/* Top Bar */}
+            <header className="sticky top-0 z-30 bg-[#0a0a0a]/90 backdrop-blur-xl border-b border-gray-800 h-14 flex items-center px-4 gap-4">
+              <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-gray-400 hover:text-white">
+                <FiMenu size={22} />
+              </button>
+              <div className="flex-1">
+                <span className="text-sm text-gray-400">
+                  {navItems.find(n => n.href === pathname)?.label || 'Admin'}
+                </span>
+              </div>
+            </header>
+
+            {/* Page Content */}
+            <main className="p-6 text-white">
+              {children}
+            </main>
           </div>
-        </header>
-
-        {/* Page Content */}
-        <main className="p-6 text-white">
-          {children}
-        </main>
-      </div>
+        </>
+      )}
     </div>
   );
 }

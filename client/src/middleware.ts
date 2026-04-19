@@ -1,23 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken, COOKIE_NAME } from '@/lib/auth';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
-  // Protect all /admin routes except login
-  if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
-    const token = request.cookies.get(COOKIE_NAME)?.value;
-
-    if (!token) {
-      return NextResponse.redirect(new URL('/admin/login', request.url));
-    }
-
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return NextResponse.redirect(new URL('/admin/login', request.url));
-    }
-  }
-
+// Auth protection is handled client-side in admin/layout.tsx
+// because the auth cookie is set by a cross-domain Express backend
+// and cannot be read by Next.js middleware on a different domain.
+export function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
