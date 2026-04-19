@@ -4,7 +4,7 @@
  * NEXT_PUBLIC_API_URL: The base URL of the Express server (e.g., http://localhost:4000)
  */
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://portfolio-6kg3.onrender.com';
 
 interface ApiOptions extends RequestInit {
   json?: any;

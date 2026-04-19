@@ -77,7 +77,7 @@ import bcrypt from 'bcryptjs';
 // ─── Start ────────────────────────────────────────────────────────────────────
 async function start() {
   await connectDB();
-  
+
   // Seed initial Admin if no admins exist
   try {
     const count = await Admin.countDocuments();
