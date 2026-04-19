@@ -20,9 +20,20 @@ import seedRoutes from './routes/seed';
 const app = express();
 const PORT = process.env.PORT || 4000;
 
+// ─── CORS ─────────────────────────────────────────────────────────────────────
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000')
+  .split(',')
+  .map(o => o.trim());
+
 app.use(
   cors({
-    origin: '*',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (Postman, server-to-server, mobile apps)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      callback(new Error(`CORS: origin ${origin} not allowed`));
+    },
+    credentials: true, // Required for cookies to work cross-domain
   })
 );
 
