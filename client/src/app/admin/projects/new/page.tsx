@@ -339,7 +339,6 @@ export default function ProjectFormPage() {
                 </div>
               )}
             </div>
-          </div>
 
           {/* Fallback Thumbnail Picker for and Google Drive/Static projects (when no YouTube preview is active) */}
           {(!form.videoUrl || form.videoProvider !== 'youtube') && (
