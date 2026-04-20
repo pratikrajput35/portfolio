@@ -18,10 +18,14 @@ export async function uploadToCloudinary(
       {
         folder,
         resource_type: resourceType,
-        quality:       'auto:good',
-        fetch_format:  'auto',
-        // Resize images to max 1280px wide — saves Cloudinary storage
-        ...(isImage && { width: 1280, crop: 'limit' }),
+        // ── Image-only optimizations ──────────────────────────────────────────
+        // Videos are uploaded untouched to preserve quality
+        ...(isImage && {
+          quality:      'auto:good',  // compress images ~70%
+          fetch_format: 'auto',       // serve webp/avif automatically
+          width:        1280,         // max width 1280px
+          crop:         'limit',      // only downscale, never upscale
+        }),
       },
       (error, result) => {
         if (error) return reject(error);
