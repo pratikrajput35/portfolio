@@ -122,25 +122,26 @@ function ProjectCard({ project, index }: { project: any; index: number }) {
           if (v) { v.pause(); v.currentTime = 0; }
         }}
       >
-        <div className={`relative overflow-hidden bg-[var(--card)] rounded-[2rem] border border-[var(--border)] mb-4 transition-all duration-500 hover:border-white/20 hover:shadow-2xl hover:shadow-orange-500/10 ${isMobile && hovered ? 'border-white/20 shadow-2xl shadow-orange-500/10' : ''}`}>
+        <div className={`relative overflow-hidden bg-[var(--card)] rounded-[2rem] border border-[var(--border)] mb-4 transition-all duration-500 hover:border-white/20 hover:shadow-2xl hover:shadow-orange-500/10 ${isMobile && hovered ? 'border-white/20 shadow-2xl shadow-orange-500/10' : ''} ${isShort ? 'aspect-[9/16]' : ''}`}>
 
-          <div className={`transition-opacity duration-700 ${hovered && (hoverVideoSrc || hasMultipleImages || project.videoProvider === 'youtube') ? 'opacity-0' : 'opacity-100'}`}>
+          <div className={`transition-opacity duration-700 h-full ${hovered && (hoverVideoSrc || hasMultipleImages || project.videoProvider === 'youtube') ? 'opacity-0' : 'opacity-100'}`}>
             {project.coverImage ? (
               <Image
                 src={project.coverImage}
                 alt={project.title}
-                width={600}
-                height={450}
+                fill={isShort}
+                width={isShort ? undefined : 600}
+                height={isShort ? undefined : 450}
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                 priority={isAboveFold}
                 fetchPriority={isAboveFold ? 'high' : 'low'}
                 onContextMenu={e => e.preventDefault()}
                 draggable={false}
                 unoptimized={project.coverImage?.includes('youtube.com') || project.coverImage?.includes('ytimg.com')}
-                className="w-full h-auto object-cover group-hover:scale-105 transition-all duration-700 ease-out select-none"
+                className={`w-full h-auto object-cover group-hover:scale-105 transition-all duration-700 ease-out select-none ${isShort ? 'h-full' : ''}`}
               />
             ) : (
-              <div className="w-full aspect-[4/3] flex items-center justify-center text-[var(--muted)] uppercase tracking-widest text-xs font-bold glass-light">
+              <div className={`w-full aspect-[4/3] flex items-center justify-center text-[var(--muted)] uppercase tracking-widest text-xs font-bold glass-light ${isShort ? 'h-full' : ''}`}>
                 <FiLayers size={24} />
               </div>
             )}
