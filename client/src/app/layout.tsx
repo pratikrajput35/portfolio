@@ -20,6 +20,9 @@ export const metadata: Metadata = {
     description: "Professional graphic design and video editing services.",
     type: "website",
   },
+  verification: {
+    google: "rMaFF4DU_l6AU1aGcjuz3zzt-NIgOgnguu9qnl9gwDs",
+  },
 };
 
 export default function RootLayout({
