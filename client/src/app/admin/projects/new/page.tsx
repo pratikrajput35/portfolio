@@ -113,15 +113,23 @@ export default function ProjectFormPage() {
   const applyVideoUrl = (raw: string) => {
     const url = raw.trim();
     const provider = detectVideoProvider(url);
-    setForm(p => ({ ...p, videoUrl: url, videoProvider: provider }));
-    // If YouTube → pre-fill cover with max-res thumbnail as suggestion
-    if (provider === 'youtube' && !form.coverImage) {
-      const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+    
+    // Extract ID if YouTube to suggest a thumbnail
+    let suggestedCover = '';
+    if (provider === 'youtube') {
+      const match = url.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]+)/);
       if (match) {
-        const suggested = `https://img.youtube.com/vi/${match[1]}/maxresdefault.jpg`;
-        setForm(p => ({ ...p, videoUrl: url, videoProvider: provider, coverImage: p.coverImage || suggested }));
+        suggestedCover = `https://img.youtube.com/vi/${match[1]}/maxresdefault.jpg`;
       }
     }
+
+    setForm(p => ({ 
+      ...p, 
+      videoUrl: url, 
+      videoProvider: provider,
+      // Auto-fill cover image if currently empty
+      coverImage: !p.coverImage && suggestedCover ? suggestedCover : p.coverImage
+    }));
   };
 
   // ── Create category ────────────────────────────────────────────────────────
@@ -277,9 +285,10 @@ export default function ProjectFormPage() {
               <div className="flex gap-2">
                 <input
                   value={videoInput}
-                  onChange={e => setVideoInput(e.target.value)}
-                  onBlur={() => { if (videoInput.trim()) applyVideoUrl(videoInput); }}
-                  onKeyDown={e => { if (e.key === 'Enter') applyVideoUrl(videoInput); }}
+                  onChange={e => {
+                    setVideoInput(e.target.value);
+                    if (e.target.value.trim()) applyVideoUrl(e.target.value);
+                  }}
                   placeholder="https://youtube.com/watch?v=... or https://drive.google.com/file/d/..."
                   className="flex-1 px-3 py-2.5 rounded-xl bg-[#0a0a0a] border border-gray-700 text-white text-sm focus:border-orange-500 focus:outline-none"
                 />
@@ -308,26 +317,43 @@ export default function ProjectFormPage() {
               )}
             </div>
 
-            {/* Live embed preview */}
-            {form.videoUrl && form.videoProvider && (
-              <div>
-                <p className="text-xs text-gray-500 mb-2">Preview:</p>
-                <VideoEmbed url={form.videoUrl} provider={form.videoProvider} className="border border-gray-800" />
-              </div>
-            )}
+              {/* Live embed preview */}
+              {form.videoUrl && form.videoProvider && (
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs text-gray-500 mb-2">Preview:</p>
+                    <VideoEmbed url={form.videoUrl} provider={form.videoProvider} className="border border-gray-800" />
+                  </div>
+
+                  {/* Integrated Thumbnail Picker — now inside the video box for better focus */}
+                  <div className="pt-4 border-t border-gray-800/50">
+                    <ThumbnailPicker
+                      videoUrl={form.videoUrl}
+                      provider={form.videoProvider}
+                      current={form.coverImage}
+                      onChange={url => setForm(p => ({ ...p, coverImage: url }))}
+                      onUpload={handleThumbnailUpload}
+                      uploading={uploading}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* ── Thumbnail Picker ── */}
-          <div className="bg-[#111] border border-gray-800 rounded-2xl p-6">
-            <ThumbnailPicker
-              videoUrl={form.videoUrl}
-              provider={form.videoProvider}
-              current={form.coverImage}
-              onChange={url => setForm(p => ({ ...p, coverImage: url }))}
-              onUpload={handleThumbnailUpload}
-              uploading={uploading}
-            />
-          </div>
+          {/* Fallback Thumbnail Picker for and Google Drive/Static projects (when no YouTube preview is active) */}
+          {(!form.videoUrl || form.videoProvider !== 'youtube') && (
+            <div className="bg-[#111] border border-gray-800 rounded-2xl p-6">
+              <ThumbnailPicker
+                videoUrl={form.videoUrl}
+                provider={form.videoProvider}
+                current={form.coverImage}
+                onChange={url => setForm(p => ({ ...p, coverImage: url }))}
+                onUpload={handleThumbnailUpload}
+                uploading={uploading}
+              />
+            </div>
+          )}
 
           {/* ── Gallery ── */}
           <div className="bg-[#111] border border-gray-800 rounded-2xl p-6 space-y-3">

@@ -51,12 +51,13 @@ export default function VideoEmbed({
     const id = parseYouTubeId(url);
     if (!id) return null;
     // Shorts are auto-normalized to standard embed — no special handling needed
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
     embedUrl = [
       `https://www.youtube.com/embed/${id}`,
       `?rel=0`,
       `&modestbranding=1`,
-      `&showinfo=0`,
-      `&iv_load_policy=3`,   // hide annotations
+      `&enablejsapi=1`,
+      origin ? `&origin=${encodeURIComponent(origin)}` : '',
     ].join('');
   } else if (p === 'drive') {
     const id = parseDriveId(url);
@@ -77,14 +78,11 @@ export default function VideoEmbed({
       <iframe
         src={embedUrl}
         title={title}
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         allowFullScreen
         loading="lazy"
         className="absolute inset-0 w-full h-full border-0"
-        // sandbox: allow-popups is REQUIRED by YouTube player (Error 153 without it)
-        sandbox="allow-same-origin allow-scripts allow-forms allow-presentation allow-popups"
-        referrerPolicy="no-referrer"
-        tabIndex={-1}
+        // Note: sandbox and referrerPolicy removed temporarily to troubleshoot "Error 153"
       />
     </div>
   );

@@ -88,9 +88,9 @@ export default function ThumbnailPicker({
                   <img
                     src={t.url}
                     alt={t.label}
+                    crossOrigin="anonymous"
                     className="w-full h-full object-cover"
                     loading="lazy"
-                    onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                   />
                   {isSelected && (
                     <div className="absolute inset-0 bg-orange-500/20 flex items-center justify-center">
