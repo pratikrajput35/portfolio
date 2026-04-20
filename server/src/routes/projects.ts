@@ -37,7 +37,7 @@ router.get('/', async (req: Request, res: Response) => {
 
   // Pagination
   const pageNum  = Math.max(1, Number(page) || 1);
-  const limitNum = Math.max(1, Math.min(100, Number(limit) || 0)); // 0 = no limit
+  const limitNum = limit ? Math.max(1, Math.min(100, Number(limit))) : 0; // 0 = no limit
 
   let query = Project.find(filter).populate('category').sort({ order: 1 });
   if (limitNum > 0) query = query.skip((pageNum - 1) * limitNum).limit(limitNum);
