@@ -79,7 +79,8 @@ function FeaturedProjectCard({ project }: { project: any }) {
   const [isMuted, setIsMuted] = useState(false);
 
   const galleryVideos = project.gallery?.filter((g: any) => g.type === 'video') || [];
-  const hoverVideoSrc = project.videoUrl || (galleryVideos.length > 0 ? galleryVideos[0].url : null);
+  // Hover video ONLY works for direct file uploads (Cloudinary). YouTube embeds are handled in details.
+  const hoverVideoSrc = galleryVideos.length > 0 ? galleryVideos[0].url : null;
   
   const allImages = [
     project.coverImage,
@@ -147,6 +148,7 @@ function FeaturedProjectCard({ project }: { project: any }) {
                   height={450}
                   onContextMenu={(e) => e.preventDefault()}
                   draggable={false}
+                  unoptimized={project.coverImage?.includes('youtube.com') || project.coverImage?.includes('ytimg.com')}
                   className="w-full h-auto object-cover group-hover:scale-105 transition-all duration-700 ease-out"
                 />
               ) : (

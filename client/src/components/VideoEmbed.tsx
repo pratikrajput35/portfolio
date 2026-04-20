@@ -51,14 +51,7 @@ export default function VideoEmbed({
     const id = parseYouTubeId(url);
     if (!id) return null;
     // Shorts are auto-normalized to standard embed — no special handling needed
-    const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    embedUrl = [
-      `https://www.youtube.com/embed/${id}`,
-      `?rel=0`,
-      `&modestbranding=1`,
-      `&enablejsapi=1`,
-      origin ? `&origin=${encodeURIComponent(origin)}` : '',
-    ].join('');
+    embedUrl = `https://www.youtube.com/embed/${id}?rel=0`;
   } else if (p === 'drive') {
     const id = parseDriveId(url);
     if (!id) return null;
