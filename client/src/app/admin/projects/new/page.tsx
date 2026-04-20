@@ -164,25 +164,40 @@ export default function ProjectFormPage() {
     if (!form.coverImage)  return toast.error('Cover / thumbnail image is required');
 
     setSaving(true);
-    const payload = {
-      ...form,
-      slug: form.slug || generateSlug(form.title),
-      tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
-      images: form.gallery.filter(g => g.type === 'image').map(g => g.url),
-    };
+    try {
+      const payload = {
+        ...form,
+        // Sanitize for backend enum
+        videoProvider: form.videoUrl ? form.videoProvider : null,
+        slug: form.slug || generateSlug(form.title),
+        tags: typeof form.tags === 'string' 
+          ? form.tags.split(',').map(t => t.trim()).filter(Boolean)
+          : form.tags,
+        images: form.gallery.filter(g => g.type === 'image').map(g => g.url),
+      };
 
-    const url    = isEdit ? `/api/projects/${projectId}` : '/api/projects';
-    const method = isEdit ? 'PUT' : 'POST';
-    const res    = await api(url, { method, json: payload });
+      const url    = isEdit ? `/api/projects/${projectId}` : '/api/projects';
+      const method = isEdit ? 'PUT' : 'POST';
+      const res    = await api(url, { method, json: payload });
+      const d      = await res.json().catch(() => ({}));
 
-    if (res.ok) {
-      toast.success(isEdit ? 'Project updated!' : 'Project created!');
-      router.push('/admin/projects');
-    } else {
-      const d = await res.json().catch(() => ({}));
-      toast.error(d.error || 'Error saving project');
+      if (res.ok) {
+        toast.success(isEdit ? 'Project updated!' : 'Project created!');
+        router.push('/admin/projects');
+      } else {
+        const errMsg = d.error || d.message || 'Error saving project';
+        if (errMsg.toLowerCase().includes('duplicate')) {
+          toast.error('A project with this title already exists.');
+        } else {
+          toast.error(errMsg);
+        }
+      }
+    } catch (err) {
+      console.error('Save error:', err);
+      toast.error('Network error. Please try again.');
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   // ─── UI ───────────────────────────────────────────────────────────────────

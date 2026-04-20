@@ -52,10 +52,15 @@ export default function AdminProjectsPage() {
     // Fetch all projects including unpublished for admin
     Promise.all([
       api('/api/projects?all=true').then(r => r.json()),
-    ]).then(([p]) => {
-      setProjects(Array.isArray(p) ? p : []);
+    ]).then(([res]) => {
+      // Handle both { data: [...] } and [ ... ] shapes
+      const data = Array.isArray(res) ? res : (res?.data || []);
+      setProjects(data);
       setLoading(false);
-    }).catch(() => setLoading(false));
+    }).catch((err) => {
+      console.error('Fetch error:', err);
+      setLoading(false);
+    });
   };
 
   useEffect(fetchProjects, []);

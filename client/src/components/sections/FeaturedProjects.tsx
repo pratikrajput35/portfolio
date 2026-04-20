@@ -173,7 +173,8 @@ function FeaturedProjectCard({ project }: { project: any }) {
             {hovered && project.videoProvider === 'youtube' && project.videoUrl && (
               <div className="absolute inset-0 w-full h-full z-0 overflow-hidden pointer-events-none scale-105 transition-opacity duration-700">
                 <iframe
-                  src={`https://www.youtube-nocookie.com/embed/${project.videoUrl.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]+)/)?.[1]}?autoplay=1&mute=1&controls=0&loop=1&playlist=${project.videoUrl.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]+)/)?.[1]}&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&showinfo=0`}
+                  id={`yt-hover-${project._id}`}
+                  src={`https://www.youtube-nocookie.com/embed/${project.videoUrl.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]+)/)?.[1]}?autoplay=1&mute=${isMuted ? 1 : 0}&controls=0&loop=1&playlist=${project.videoUrl.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]+)/)?.[1]}&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&showinfo=0&enablejsapi=1`}
                   className="absolute inset-0 w-[150%] h-[150%] top-[-25%] left-[-25%] pointer-events-none border-0"
                   allow="autoplay; encrypted-media"
                 />
@@ -209,21 +210,31 @@ function FeaturedProjectCard({ project }: { project: any }) {
               </motion.span>
             </div>
             
-            {hoverVideoSrc && (
-               <div className={`absolute bottom-6 right-6 z-30 transition-opacity duration-500 pointer-events-none flex gap-2 ${hovered ? 'opacity-100' : 'opacity-0'} group-hover:opacity-100`}>
-                 <button 
-                   onClick={(e) => { 
-                     e.preventDefault(); 
-                     e.stopPropagation(); 
-                     setIsMuted(!isMuted);
-                     const v = e.currentTarget.closest('.group')?.querySelector('video');
-                     if (v) v.muted = !isMuted;
-                   }} 
-                   className="p-2.5 bg-black/40 text-white rounded-full backdrop-blur-md hover:bg-black/80 transition-colors pointer-events-auto shadow-lg"
-                 >
-                   {isMuted ? <FiVolumeX size={16} /> : <FiVolume2 size={16} />}
-                 </button>
-               </div>
+            {/* Controls Overlay (Mute/Unmute) */}
+            {(hoverVideoSrc || (project.videoProvider === 'youtube' && hovered)) && (
+              <div className={`absolute bottom-6 right-6 z-20 transition-opacity duration-500 flex gap-2 ${hovered ? 'opacity-100' : 'opacity-0'} group-hover:opacity-100`}>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault(); e.stopPropagation();
+                    const newMuted = !isMuted;
+                    setIsMuted(newMuted);
+                    
+                    // Handle direct video
+                    const v = e.currentTarget.closest('.group')?.querySelector('video');
+                    if (v) v.muted = newMuted;
+
+                    // Handle YouTube iframe via postMessage
+                    const yt = document.getElementById(`yt-hover-${project._id}`) as HTMLIFrameElement;
+                    if (yt?.contentWindow) {
+                      const msg = newMuted ? 'mute' : 'unMute';
+                      yt.contentWindow.postMessage(JSON.stringify({ event: 'command', func: msg, args: '' }), '*');
+                    }
+                  }}
+                  className="p-2.5 bg-black/40 text-white rounded-full backdrop-blur-md hover:bg-black/80 transition-colors pointer-events-auto shadow-lg"
+                >
+                  {isMuted ? <FiVolumeX size={16} /> : <FiVolume2 size={16} />}
+                </button>
+              </div>
             )}
 
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">

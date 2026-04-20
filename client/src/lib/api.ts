@@ -27,6 +27,7 @@ export async function api(endpoint: string, options: ApiOptions = {}) {
     ...options,
     headers,
     credentials: 'include', // Send cookies
+    cache: 'no-store', // Ensure fresh data for admin actions
   });
 
   // Handle unauthorized responses by clear cache/redirect (caller handles this mostly)
