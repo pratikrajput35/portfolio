@@ -84,16 +84,24 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         </Link>
       </motion.div>
 
-      {/* ── Hero image — clip-path wipe reveal ── */}
       {project.coverImage && (
         <motion.div
           initial={{ clipPath: 'inset(100% 0 0 0)', opacity: 1 }}
           animate={{ clipPath: 'inset(0% 0 0 0)', opacity: 1 }}
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-          className="relative rounded-3xl overflow-hidden mb-12 border border-[var(--border)] shadow-2xl shadow-black/40 flex justify-center bg-black/20"
+          className="relative rounded-3xl overflow-hidden mb-12 border border-[var(--border)] shadow-2xl shadow-black/40 flex justify-center bg-black/20 select-none"
+          onContextMenu={e => e.preventDefault()}
         >
-          <Image src={project.coverImage} alt={project.title} width={1200} height={800} priority className="w-full h-auto" onContextMenu={(e) => e.preventDefault()} draggable={false} />
-          {/* Gradient overlay at bottom */}
+          <Image
+            src={project.coverImage}
+            alt={project.title}
+            width={1200}
+            height={800}
+            priority
+            className="w-full h-auto"
+            onContextMenu={e => e.preventDefault()}
+            draggable={false}
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
         </motion.div>
       )}
@@ -164,16 +172,25 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     className="relative rounded-2xl overflow-hidden border border-[var(--border)] bg-black flex justify-center"
                   >
                     {item.type === 'video' ? (
-                      <video src={item.url} preload="none" controls controlsList="nodownload" onContextMenu={(e) => e.preventDefault()} className="w-full h-auto max-h-[85vh] object-contain" />
+                      <video
+                        src={item.url}
+                        preload="none"
+                        controls
+                        controlsList="nodownload noremoteplayback"
+                        disablePictureInPicture
+                        onContextMenu={e => e.preventDefault()}
+                        className="w-full h-auto max-h-[85vh] object-contain select-none"
+                      />
                     ) : (
                       <Image
                         src={item.url}
                         alt={`${project.title} gallery ${i + 1}`}
                         width={800}
                         height={600}
-                        onContextMenu={(e) => e.preventDefault()}
+                        onContextMenu={e => e.preventDefault()}
                         draggable={false}
-                        className="w-full h-auto"
+                        className="w-full h-auto select-none"
+                        loading="lazy"
                       />
                     )}
                   </motion.div>

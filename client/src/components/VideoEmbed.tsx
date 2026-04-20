@@ -7,7 +7,7 @@ export function parseYouTubeId(url: string): string | null {
     /youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/,
     /youtu\.be\/([a-zA-Z0-9_-]+)/,
     /youtube\.com\/embed\/([a-zA-Z0-9_-]+)/,
-    /youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/,
+    /youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/,   // ✅ Shorts supported
   ];
   for (const p of patterns) {
     const m = url.match(p);
@@ -37,7 +37,12 @@ interface VideoEmbedProps {
   title?: string;
 }
 
-export default function VideoEmbed({ url, provider, className = '', title = 'Project Video' }: VideoEmbedProps) {
+export default function VideoEmbed({
+  url,
+  provider,
+  className = '',
+  title = 'Project Video',
+}: VideoEmbedProps) {
   const p = provider || detectVideoProvider(url);
 
   let embedUrl = '';
@@ -45,7 +50,14 @@ export default function VideoEmbed({ url, provider, className = '', title = 'Pro
   if (p === 'youtube') {
     const id = parseYouTubeId(url);
     if (!id) return null;
-    embedUrl = `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1&showinfo=0`;
+    // Shorts are auto-normalized to standard embed — no special handling needed
+    embedUrl = [
+      `https://www.youtube.com/embed/${id}`,
+      `?rel=0`,
+      `&modestbranding=1`,
+      `&showinfo=0`,
+      `&iv_load_policy=3`,   // hide annotations
+    ].join('');
   } else if (p === 'drive') {
     const id = parseDriveId(url);
     if (!id) return null;
@@ -54,8 +66,14 @@ export default function VideoEmbed({ url, provider, className = '', title = 'Pro
     return null;
   }
 
+  const blockContext = (e: React.MouseEvent) => e.preventDefault();
+
   return (
-    <div className={`relative w-full aspect-video rounded-2xl overflow-hidden bg-black ${className}`}>
+    // `media-protected` applies CSS shield; `select-none` prevents text selection around iframe
+    <div
+      className={`media-protected relative w-full aspect-video rounded-2xl overflow-hidden bg-black select-none ${className}`}
+      onContextMenu={blockContext}
+    >
       <iframe
         src={embedUrl}
         title={title}
@@ -63,7 +81,10 @@ export default function VideoEmbed({ url, provider, className = '', title = 'Pro
         allowFullScreen
         loading="lazy"
         className="absolute inset-0 w-full h-full border-0"
-        sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-presentation"
+        // sandbox note: allow-popups removed → prevents "open in YouTube" link
+        sandbox="allow-same-origin allow-scripts allow-forms allow-presentation"
+        referrerPolicy="no-referrer"
+        tabIndex={-1}
       />
     </div>
   );

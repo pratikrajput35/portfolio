@@ -16,13 +16,42 @@
     border-color: var(--border);
   }
 
-  /* Global Media Security - Prevent Dragging */
+  /* ── Global Media Security ─────────────────────────────────────
+     Prevents: drag, text-selection, long-press save (iOS), callout
+     Does NOT prevent devtools — that's impossible by design.
+  ──────────────────────────────────────────────────────────────── */
   img, video {
     -webkit-user-drag: none;
     -khtml-user-drag: none;
     -moz-user-drag: none;
     -o-user-drag: none;
+    user-drag: none;
     user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none; /* iOS long-press save */
+    pointer-events: none;        /* blocks right-click + drag at CSS level */
+  }
+
+  /* Re-enable pointer events only inside admin panel so uploads still work */
+  .admin-media-editable img,
+  .admin-media-editable video {
+    pointer-events: auto;
+  }
+
+  /* Iframe wrapper protection (YouTube / Drive embeds) */
+  .media-protected {
+    position: relative;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  /* Transparent shield above iframe to block right-click on the frame border area */
+  .media-protected::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none; /* let clicks pass through to iframe controls */
+    cursor: default;
   }
 
   body {
