@@ -139,7 +139,7 @@ function FeaturedProjectCard({ project }: { project: any }) {
           <div className={`relative overflow-hidden bg-[var(--card)] rounded-[2rem] border border-[var(--border)] mb-6 transition-all duration-500 hover:border-white/20 hover:shadow-2xl hover:shadow-orange-500/10 ${isMobile && hovered ? 'border-white/20 shadow-2xl shadow-orange-500/10' : ''}`}>
             
             {/* Main Cover Image */}
-            <div className={`transition-opacity duration-700 ${hovered && (hoverVideoSrc || hasMultipleImages) ? 'opacity-0' : 'opacity-100'}`}>
+            <div className={`transition-opacity duration-700 ${hovered && (hoverVideoSrc || hasMultipleImages || project.videoProvider === 'youtube') ? 'opacity-0' : 'opacity-100'}`}>
               {project.coverImage ? (
                 <Image
                   src={project.coverImage}
@@ -158,7 +158,7 @@ function FeaturedProjectCard({ project }: { project: any }) {
               )}
             </div>
 
-            {/* Hover Video */}
+            {/* Hover Video (Direct file) */}
             {hoverVideoSrc && (
               <video
                 src={hoverVideoSrc}
@@ -167,6 +167,17 @@ function FeaturedProjectCard({ project }: { project: any }) {
                 onContextMenu={(e) => e.preventDefault()}
                 className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out z-0 pointer-events-none ${hovered ? 'opacity-100 scale-105' : 'opacity-0'}`}
               />
+            )}
+
+            {/* YouTube Hover Preview */}
+            {hovered && project.videoProvider === 'youtube' && project.videoUrl && (
+              <div className="absolute inset-0 w-full h-full z-0 overflow-hidden pointer-events-none scale-105 transition-opacity duration-700">
+                <iframe
+                  src={`https://www.youtube-nocookie.com/embed/${project.videoUrl.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]+)/)?.[1]}?autoplay=1&mute=1&controls=0&loop=1&playlist=${project.videoUrl.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]+)/)?.[1]}&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&showinfo=0`}
+                  className="absolute inset-0 w-[150%] h-[150%] top-[-25%] left-[-25%] pointer-events-none border-0"
+                  allow="autoplay; encrypted-media"
+                />
+              </div>
             )}
 
             {/* Hover Multiple Images Scroll */}
