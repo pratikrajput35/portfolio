@@ -29,7 +29,7 @@
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none; /* iOS long-press save */
-    pointer-events: none;        /* blocks right-click + drag at CSS level */
+    pointer-events: auto;        /* changed from none so video controls work */
   }
 
   /* Re-enable pointer events only inside admin panel so uploads still work */

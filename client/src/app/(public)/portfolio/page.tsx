@@ -1,9 +1,9 @@
 'use client';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence, useInView, type Variants } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
-import { FiExternalLink, FiLayers, FiVolume2, FiVolumeX } from 'react-icons/fi';
+import { FiExternalLink, FiLayers, FiVolume2, FiVolumeX, FiPlus } from 'react-icons/fi';
 import api from '@/lib/api';
 
 /* ─── Marquee strip ─────────────────────────────────────────── */
@@ -33,7 +33,6 @@ function SkeletonCard() {
   return (
     <div className="break-inside-avoid pb-6">
       <div className="overflow-hidden bg-[var(--card)] rounded-[2rem] border border-[var(--border)] mb-4 animate-pulse">
-        {/* Fake image — random heights for masonry feel */}
         <div className="w-full bg-white/5" style={{ aspectRatio: '4/3' }} />
       </div>
       <div className="px-2 space-y-2">
@@ -61,9 +60,8 @@ function ProjectCard({ project, index }: { project: any; index: number }) {
   const [hovered, setHovered] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
 
-  // Only Cloudinary-hosted videos used for hover; YouTube links are not preloadable
   const galleryVideos  = project.gallery?.filter((g: any) => g.type === 'video') || [];
-  const hoverVideoSrc  = galleryVideos[0]?.url ?? null; // only direct video files
+  const hoverVideoSrc  = galleryVideos[0]?.url ?? null; 
   const allImages      = [
     project.coverImage,
     ...(project.gallery?.filter((g: any) => g.type === 'image').map((g: any) => g.url) || []),
@@ -95,7 +93,6 @@ function ProjectCard({ project, index }: { project: any; index: number }) {
     }
   }, [isInView, isMobile]);
 
-  // First 3 images get priority (above-the-fold), rest are lazy
   const isAboveFold = index < 3;
 
   return (
@@ -124,7 +121,6 @@ function ProjectCard({ project, index }: { project: any; index: number }) {
       >
         <div className={`relative overflow-hidden bg-[var(--card)] rounded-[2rem] border border-[var(--border)] mb-4 transition-all duration-500 hover:border-white/20 hover:shadow-2xl hover:shadow-orange-500/10 ${isMobile && hovered ? 'border-white/20 shadow-2xl shadow-orange-500/10' : ''}`}>
 
-          {/* Cover Image */}
           <div className={`transition-opacity duration-700 ${hovered && (hoverVideoSrc || hasMultipleImages) ? 'opacity-0' : 'opacity-100'}`}>
             {project.coverImage ? (
               <Image
@@ -132,9 +128,8 @@ function ProjectCard({ project, index }: { project: any; index: number }) {
                 alt={project.title}
                 width={600}
                 height={450}
-                // Correct responsive sizes for the 3-column masonry layout
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                priority={isAboveFold}           // LCP boost for first 3 cards
+                priority={isAboveFold}
                 fetchPriority={isAboveFold ? 'high' : 'low'}
                 onContextMenu={e => e.preventDefault()}
                 draggable={false}
@@ -147,7 +142,6 @@ function ProjectCard({ project, index }: { project: any; index: number }) {
             )}
           </div>
 
-          {/* Hover Video (Cloudinary direct only — youtube embeds won't hover-play) */}
           {hoverVideoSrc && (
             <video
               src={hoverVideoSrc}
@@ -158,7 +152,6 @@ function ProjectCard({ project, index }: { project: any; index: number }) {
             />
           )}
 
-          {/* Multi-image slideshow on hover */}
           {!hoverVideoSrc && hasMultipleImages && (
             <div className={`absolute inset-0 w-full h-full z-0 overflow-hidden pointer-events-none transition-opacity duration-700 ${hovered ? 'opacity-100' : 'opacity-0'}`}>
               <motion.div
@@ -183,7 +176,6 @@ function ProjectCard({ project, index }: { project: any; index: number }) {
             </div>
           )}
 
-          {/* Category badge */}
           {project.category && (
             <div className="absolute top-4 left-4 z-10">
               <motion.span
@@ -196,21 +188,18 @@ function ProjectCard({ project, index }: { project: any; index: number }) {
             </div>
           )}
 
-          {/* Project number */}
           <div className="absolute top-4 right-4 z-10">
             <span className="text-[10px] font-black text-white/30 tracking-widest">
               {String(index + 1).padStart(2, '0')}
             </span>
           </div>
 
-          {/* Hover overlay */}
           <div className={`absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent transition-opacity duration-500 flex flex-col justify-end p-6 z-10 ${hovered ? 'opacity-100' : 'opacity-0'} group-hover:opacity-100`}>
             <span className={`text-white flex items-center gap-2 font-bold tracking-widest text-xs uppercase transition-transform duration-500 ${hovered ? 'translate-y-0' : 'translate-y-4'} group-hover:translate-y-0`}>
               View project <FiExternalLink size={12} />
             </span>
           </div>
 
-          {/* Mute toggle */}
           {hoverVideoSrc && (
             <div className={`absolute bottom-6 right-6 z-30 transition-opacity duration-500 pointer-events-none flex gap-2 ${hovered ? 'opacity-100' : 'opacity-0'} group-hover:opacity-100`}>
               <button
@@ -227,7 +216,6 @@ function ProjectCard({ project, index }: { project: any; index: number }) {
             </div>
           )}
 
-          {/* Shimmer */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[2rem]">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
           </div>
@@ -261,31 +249,61 @@ export default function PortfolioPage() {
   const [projects, setProjects]     = useState<any[]>([]);
   const [activeCategory, setActiveCategory] = useState('all');
   const [loading, setLoading]       = useState(true);
+  const [fetchingMore, setFetchingMore] = useState(false);
+  const [page, setPage]             = useState(1);
+  const [hasMore, setHasMore]       = useState(true);
 
+  const limitNum = 12;
+
+  // 1. Initial categories fetch
   useEffect(() => {
-    // Parallel fetch — categories and projects load simultaneously
-    Promise.all([
-      api('/api/categories').then(r => r.json()),
-      api('/api/projects').then(r => r.json()),
-    ]).then(([cats, projs]) => {
+    api('/api/categories').then(r => r.json()).then(cats => {
       setCategories(Array.isArray(cats) ? cats : []);
-      setProjects(Array.isArray(projs) ? projs : []);
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    });
   }, []);
 
-  // Memoized filter — avoids recalculating on every render
-  const filtered = useMemo(
-    () => activeCategory === 'all'
-      ? projects
-      : projects.filter(p => p.category?._id === activeCategory || p.category?.slug === activeCategory),
-    [projects, activeCategory]
-  );
+  // 2. Fetch projects logic
+  const fetchProjects = useCallback(async (pageNum: number, categoryId: string, isLoadMore: boolean) => {
+    if (isLoadMore) setFetchingMore(true);
+    else setLoading(true);
+
+    try {
+      const query = new URLSearchParams();
+      query.append('page', pageNum.toString());
+      query.append('limit', limitNum.toString());
+      if (categoryId !== 'all') query.append('category', categoryId);
+
+      const res = await api(`/api/projects?${query.toString()}`).then(r => r.json());
+      
+      // Handle both { data, total } and [ ... ] shapes
+      const newItems = Array.isArray(res) ? res : (res?.data || []);
+      const total    = res?.total ?? newItems.length;
+
+      setProjects(prev => isLoadMore ? [...prev, ...newItems] : newItems);
+      setHasMore(isLoadMore ? projects.length + newItems.length < total : newItems.length < total);
+    } catch (err) {
+      console.error('Failed to fetch projects', err);
+    } finally {
+      setLoading(false);
+      setFetchingMore(false);
+    }
+  }, [projects.length]);
+
+  // 3. Trigger fetch on category change
+  useEffect(() => {
+    setPage(1);
+    fetchProjects(1, activeCategory, false);
+  }, [activeCategory]);
+
+  const loadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchProjects(nextPage, activeCategory, true);
+  };
 
   return (
     <div className="site-container section-pad">
 
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -308,7 +326,6 @@ export default function PortfolioPage() {
 
       <Marquee />
 
-      {/* Category Filter */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -338,13 +355,11 @@ export default function PortfolioPage() {
         })}
       </motion.div>
 
-      {/* Grid — shows skeletons while loading, real cards after */}
       {loading ? (
-        // ── Skeleton Grid: 6 placeholder cards in masonry layout ──
         <div className="columns-1 sm:columns-2 lg:columns-3 gap-6">
           {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
         </div>
-      ) : filtered.length === 0 ? (
+      ) : projects.length === 0 ? (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -355,21 +370,47 @@ export default function PortfolioPage() {
           </p>
         </motion.div>
       ) : (
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeCategory}
-            initial="hidden"
-            animate="visible"
-            exit={{ opacity: 0, transition: { duration: 0.2 } }}
-            // Stagger cards for a smooth cascade reveal
-            variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.06, delayChildren: 0.03 } } }}
-            className="columns-1 sm:columns-2 lg:columns-3 gap-6"
-          >
-            {filtered.map((project, i) => (
-              <ProjectCard key={project._id} project={project} index={i} />
-            ))}
-          </motion.div>
-        </AnimatePresence>
+        <>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeCategory}
+              initial="hidden"
+              animate="visible"
+              exit={{ opacity: 0, transition: { duration: 0.2 } }}
+              variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.06, delayChildren: 0.03 } } }}
+              className="columns-1 sm:columns-2 lg:columns-3 gap-6"
+            >
+              {projects.map((project, i) => (
+                <ProjectCard key={project._id} project={project} index={i} />
+              ))}
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Load More Button */}
+          {hasMore && (
+            <div className="mt-16 flex justify-center">
+              <button
+                onClick={loadMore}
+                disabled={fetchingMore}
+                className="group relative px-8 py-3.5 rounded-full bg-white/5 border border-white/10 hover:border-orange-500/50 transition-all duration-300 disabled:opacity-50"
+              >
+                <div className="relative z-10 flex items-center gap-3 text-sm font-bold uppercase tracking-widest text-white">
+                  {fetchingMore ? (
+                    <>
+                      <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <FiPlus className="text-orange-500 group-hover:rotate-90 transition-transform duration-300" />
+                      Load More Projects
+                    </>
+                  )}
+                </div>
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

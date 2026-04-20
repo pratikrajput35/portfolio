@@ -253,20 +253,35 @@ export default function FeaturedProjects() {
   useEffect(() => {
     api('/api/projects?featured=true&limit=6')
       .then((r) => r.json())
-      .then((data) => { setProjects(Array.isArray(data) ? data : []); setLoading(false); })
+      .then((res) => {
+        // API returns { data: [...], total, page } when limit param is used
+        const list = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
+        setProjects(list);
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, []);
 
   if (loading) {
     return (
-      <div className="py-24 flex items-center justify-center gap-3 text-[var(--muted)]">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
-          className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full"
-        />
-        Loading projects…
-      </div>
+      <section className="site-container section-pad">
+        <div className="flex flex-col items-center text-center mb-24 opacity-20">
+           <div className="h-4 w-32 bg-white/10 rounded-full mb-6 animate-pulse" />
+           <div className="h-16 w-64 bg-white/10 rounded-xl mb-6 animate-pulse" />
+        </div>
+        <div className="columns-1 md:columns-2 gap-10">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="break-inside-avoid pb-10">
+              <div className="aspect-[4/3] w-full bg-white/5 rounded-[2rem] border border-white/10 animate-pulse" />
+              <div className="mt-6 px-2 space-y-3">
+                <div className="h-7 w-2/3 bg-white/5 rounded-lg animate-pulse" />
+                <div className="h-4 w-full bg-white/5 rounded-lg animate-pulse" />
+                <div className="h-4 w-1/2 bg-white/5 rounded-lg animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     );
   }
 

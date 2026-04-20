@@ -81,8 +81,8 @@ export default function VideoEmbed({
         allowFullScreen
         loading="lazy"
         className="absolute inset-0 w-full h-full border-0"
-        // sandbox note: allow-popups removed → prevents "open in YouTube" link
-        sandbox="allow-same-origin allow-scripts allow-forms allow-presentation"
+        // sandbox: allow-popups is REQUIRED by YouTube player (Error 153 without it)
+        sandbox="allow-same-origin allow-scripts allow-forms allow-presentation allow-popups"
         referrerPolicy="no-referrer"
         tabIndex={-1}
       />
