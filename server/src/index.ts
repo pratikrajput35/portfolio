@@ -26,22 +26,25 @@ const PORT = process.env.PORT || 4000;
 app.use(compression());
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
-const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000')
-  .split(',')
-  .map(o => o.trim());
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://brave-portfolio-iota.vercel.app"
+];
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (Postman, server-to-server, mobile apps)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      callback(new Error(`CORS: origin ${origin} not allowed`));
-    },
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true, // Required for cookies to work cross-domain
-  })
-);
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(null, false); // don't throw error
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  credentials: true,
+}));
+
+// ✅ HANDLE PREFLIGHT
+app.options("*", cors());
 
 app.use(cookieParser());
 
