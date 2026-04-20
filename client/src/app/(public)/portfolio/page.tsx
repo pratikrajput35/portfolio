@@ -72,7 +72,10 @@ function ProjectCard({ project, index }: { project: any; index: number }) {
   const hasMultipleImages = uniqueImages.length > 1;
 
   const cardRef  = useRef<HTMLDivElement>(null);
-  const isInView = useInView(cardRef, { amount: 0.6, margin: '0px 0px -10% 0px' });
+  const isInView = useInView(cardRef, { 
+    amount: 0.4, 
+    margin: '-10% 0px -10% 0px' 
+  });
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -160,7 +163,7 @@ function ProjectCard({ project, index }: { project: any; index: number }) {
 
           {/* YouTube Hover Preview */}
           {hovered && project.videoProvider === 'youtube' && project.videoUrl && (
-            <div className="absolute inset-0 w-full h-full z-0 overflow-hidden pointer-events-none scale-105 transition-opacity duration-700">
+            <div className={`absolute inset-0 w-full h-full z-0 overflow-hidden pointer-events-none scale-105 transition-opacity ${isMobile ? 'duration-1000' : 'duration-300'} ${hovered ? 'opacity-100' : 'opacity-0'}`}>
               {/* Blurred background for vertical/shorts */}
               {isShort && (
                 <div className="absolute inset-0 z-0">
