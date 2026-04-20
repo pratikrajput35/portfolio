@@ -4,7 +4,12 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "react-hot-toast";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",        // prevents invisible text during font load
+  preload: true,
+});
 
 export const metadata: Metadata = {
   title: "Pratik Rajput | Creative Designer & Video Editor",
@@ -24,6 +29,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* ── Preconnect to external media origins for faster first load ── */}
+        <link rel="preconnect" href="https://res.cloudinary.com" />
+        <link rel="preconnect" href="https://img.youtube.com" />
+        <link rel="preconnect" href="https://www.youtube.com" />
+        <link rel="preconnect" href="https://drive.google.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* DNS-prefetch as fallback for older browsers */}
+        <link rel="dns-prefetch" href="https://res.cloudinary.com" />
+        <link rel="dns-prefetch" href="https://img.youtube.com" />
+      </head>
       <body className={`${inter.variable} font-sans antialiased relative`}>
         <ThemeProvider>
           {children}

@@ -2,6 +2,7 @@ import 'dotenv/config';
 import 'express-async-errors';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import connectDB from './lib/db';
 
@@ -19,6 +20,10 @@ import seedRoutes from './routes/seed';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+
+// ─── Gzip Compression ─────────────────────────────────────────────────────────
+// Compresses all JSON responses — reduces payload size by ~70%
+app.use(compression());
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000')

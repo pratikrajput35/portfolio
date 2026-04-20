@@ -1,6 +1,6 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence, useScroll, useTransform, useInView, type Variants } from 'framer-motion';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { motion, AnimatePresence, useInView, type Variants } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
 import { FiExternalLink, FiLayers, FiVolume2, FiVolumeX } from 'react-icons/fi';
@@ -28,18 +28,32 @@ function Marquee() {
   );
 }
 
+/* ─── Skeleton Card (shown while loading) ───────────────────── */
+function SkeletonCard() {
+  return (
+    <div className="break-inside-avoid pb-6">
+      <div className="overflow-hidden bg-[var(--card)] rounded-[2rem] border border-[var(--border)] mb-4 animate-pulse">
+        {/* Fake image — random heights for masonry feel */}
+        <div className="w-full bg-white/5" style={{ aspectRatio: '4/3' }} />
+      </div>
+      <div className="px-2 space-y-2">
+        <div className="h-5 w-3/4 rounded-lg bg-white/5 animate-pulse" />
+        <div className="h-3 w-full rounded-lg bg-white/5 animate-pulse" />
+        <div className="h-3 w-2/3 rounded-lg bg-white/5 animate-pulse" />
+        <div className="flex gap-1.5 mt-1">
+          <div className="h-5 w-14 rounded-full bg-white/5 animate-pulse" />
+          <div className="h-5 w-16 rounded-full bg-white/5 animate-pulse" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Card variants ─────────────────────────────────────────── */
-const gridVariants: Variants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
-};
 const cardVariants: Variants = {
-  hidden: { opacity: 0, y: 50, scale: 0.94 },
-  visible: {
-    opacity: 1, y: 0, scale: 1,
-    transition: { duration: 0.6, ease: 'easeOut' },
-  },
-  exit: { opacity: 0, scale: 0.95, y: -20, transition: { duration: 0.3 } },
+  hidden:  { opacity: 0, y: 30, scale: 0.96 },
+  visible: { opacity: 1, y: 0,  scale: 1, transition: { duration: 0.5, ease: 'easeOut' } },
+  exit:    { opacity: 0, scale: 0.96, y: -15, transition: { duration: 0.25 } },
 };
 
 /* ─── Project Card ──────────────────────────────────────────── */
@@ -47,42 +61,42 @@ function ProjectCard({ project, index }: { project: any; index: number }) {
   const [hovered, setHovered] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
 
-  // Extract video from either videoUrl or gallery
-  const galleryVideos = project.gallery?.filter((g: any) => g.type === 'video') || [];
-  const hoverVideoSrc = project.videoUrl || (galleryVideos.length > 0 ? galleryVideos[0].url : null);
-
-  // Extract multiple images
-  const allImages = [
+  // Only Cloudinary-hosted videos used for hover; YouTube links are not preloadable
+  const galleryVideos  = project.gallery?.filter((g: any) => g.type === 'video') || [];
+  const hoverVideoSrc  = galleryVideos[0]?.url ?? null; // only direct video files
+  const allImages      = [
     project.coverImage,
     ...(project.gallery?.filter((g: any) => g.type === 'image').map((g: any) => g.url) || []),
-    ...(project.images || [])
+    ...(project.images || []),
   ].filter(Boolean);
-  const uniqueImages = Array.from(new Set(allImages));
+  const uniqueImages    = useMemo(() => [...new Set(allImages)] as string[], [project._id]);
   const hasMultipleImages = uniqueImages.length > 1;
 
-  const cardRef = useRef<HTMLDivElement>(null);
-  const isInView = useInView(cardRef, { amount: 0.6, margin: "0px 0px -10% 0px" });
+  const cardRef  = useRef<HTMLDivElement>(null);
+  const isInView = useInView(cardRef, { amount: 0.6, margin: '0px 0px -10% 0px' });
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 1024);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    const check = () => setIsMobile(window.innerWidth < 1024);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
   }, []);
 
   useEffect(() => {
     if (!isMobile) return;
+    const v = cardRef.current?.querySelector('video');
     if (isInView) {
       setHovered(true);
-      const v = cardRef.current?.querySelector('video');
       if (v) { v.muted = true; setIsMuted(true); v.play().catch(() => {}); }
     } else {
       setHovered(false);
-      const v = cardRef.current?.querySelector('video');
       if (v) { v.pause(); v.currentTime = 0; }
     }
   }, [isInView, isMobile]);
+
+  // First 3 images get priority (above-the-fold), rest are lazy
+  const isAboveFold = index < 3;
 
   return (
     <motion.div
@@ -92,28 +106,25 @@ function ProjectCard({ project, index }: { project: any; index: number }) {
       onHoverStart={() => setHovered(true)}
       onHoverEnd={() => setHovered(false)}
     >
-      <Link href={`/portfolio/${project._id}`} className="group block relative"
-        onMouseEnter={(e) => { 
-          const v = e.currentTarget.querySelector('video'); 
-           if (v) { 
-             v.muted = isMuted; 
-             v.play().catch((err) => { 
-                console.warn('Autoplay blocked with sound, attempting muted', err);
-                v.muted = true;
-                setIsMuted(true);
-                v.play().catch(()=>{});
-             }); 
-           } 
+      <Link
+        href={`/portfolio/${project._id}`}
+        className="group block relative"
+        onMouseEnter={(e) => {
+          const v = e.currentTarget.querySelector('video');
+          if (v) {
+            v.muted = isMuted;
+            v.play().catch(() => { v.muted = true; setIsMuted(true); v.play().catch(() => {}); });
+          }
         }}
-        onMouseLeave={(e) => { 
+        onMouseLeave={(e) => {
           if (isMobile) return;
-          const v = e.currentTarget.querySelector('video'); 
-          if (v) { v.pause(); v.currentTime = 0; } 
+          const v = e.currentTarget.querySelector('video');
+          if (v) { v.pause(); v.currentTime = 0; }
         }}
       >
         <div className={`relative overflow-hidden bg-[var(--card)] rounded-[2rem] border border-[var(--border)] mb-4 transition-all duration-500 hover:border-white/20 hover:shadow-2xl hover:shadow-orange-500/10 ${isMobile && hovered ? 'border-white/20 shadow-2xl shadow-orange-500/10' : ''}`}>
-          
-          {/* Main Cover Image (hides when hover media plays) */}
+
+          {/* Cover Image */}
           <div className={`transition-opacity duration-700 ${hovered && (hoverVideoSrc || hasMultipleImages) ? 'opacity-0' : 'opacity-100'}`}>
             {project.coverImage ? (
               <Image
@@ -121,9 +132,13 @@ function ProjectCard({ project, index }: { project: any; index: number }) {
                 alt={project.title}
                 width={600}
                 height={450}
-                onContextMenu={(e) => e.preventDefault()}
+                // Correct responsive sizes for the 3-column masonry layout
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                priority={isAboveFold}           // LCP boost for first 3 cards
+                fetchPriority={isAboveFold ? 'high' : 'low'}
+                onContextMenu={e => e.preventDefault()}
                 draggable={false}
-                className="w-full h-auto object-cover group-hover:scale-105 transition-all duration-700 ease-out"
+                className="w-full h-auto object-cover group-hover:scale-105 transition-all duration-700 ease-out select-none"
               />
             ) : (
               <div className="w-full aspect-[4/3] flex items-center justify-center text-[var(--muted)] uppercase tracking-widest text-xs font-bold glass-light">
@@ -132,18 +147,18 @@ function ProjectCard({ project, index }: { project: any; index: number }) {
             )}
           </div>
 
-          {/* Hover Video */}
+          {/* Hover Video (Cloudinary direct only — youtube embeds won't hover-play) */}
           {hoverVideoSrc && (
             <video
               src={hoverVideoSrc}
               muted playsInline loop preload="none"
-              controlsList="nodownload"
-              onContextMenu={(e) => e.preventDefault()}
-              className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out z-0 pointer-events-none ${hovered ? 'opacity-100 scale-105' : 'opacity-0'}`}
+              controlsList="nodownload noremoteplayback"
+              onContextMenu={e => e.preventDefault()}
+              className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out z-0 pointer-events-none select-none ${hovered ? 'opacity-100 scale-105' : 'opacity-0'}`}
             />
           )}
 
-          {/* Hover Multiple Images Scroll */}
+          {/* Multi-image slideshow on hover */}
           {!hoverVideoSrc && hasMultipleImages && (
             <div className={`absolute inset-0 w-full h-full z-0 overflow-hidden pointer-events-none transition-opacity duration-700 ${hovered ? 'opacity-100' : 'opacity-0'}`}>
               <motion.div
@@ -153,7 +168,15 @@ function ProjectCard({ project, index }: { project: any; index: number }) {
               >
                 {uniqueImages.map((imgUrl, i) => (
                   <div key={i} className="relative w-full h-full shrink-0">
-                    <Image src={imgUrl as string} alt="" fill sizes="(max-width: 768px) 100vw, 33vw" onContextMenu={(e) => e.preventDefault()} draggable={false} className="object-cover" />
+                    <Image
+                      src={imgUrl}
+                      alt=""
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      onContextMenu={e => e.preventDefault()}
+                      draggable={false}
+                      className="object-cover select-none"
+                    />
                   </div>
                 ))}
               </motion.div>
@@ -187,24 +210,24 @@ function ProjectCard({ project, index }: { project: any; index: number }) {
             </span>
           </div>
 
+          {/* Mute toggle */}
           {hoverVideoSrc && (
-             <div className={`absolute bottom-6 right-6 z-30 transition-opacity duration-500 pointer-events-none flex gap-2 ${hovered ? 'opacity-100' : 'opacity-0'} group-hover:opacity-100`}>
-               <button 
-                 onClick={(e) => { 
-                   e.preventDefault(); 
-                   e.stopPropagation(); 
-                   setIsMuted(!isMuted);
-                   const v = e.currentTarget.closest('.group')?.querySelector('video');
-                   if (v) v.muted = !isMuted;
-                 }} 
-                 className="p-2.5 bg-black/40 text-white rounded-full backdrop-blur-md hover:bg-black/80 transition-colors pointer-events-auto shadow-lg"
-               >
-                 {isMuted ? <FiVolumeX size={16} /> : <FiVolume2 size={16} />}
-               </button>
-             </div>
+            <div className={`absolute bottom-6 right-6 z-30 transition-opacity duration-500 pointer-events-none flex gap-2 ${hovered ? 'opacity-100' : 'opacity-0'} group-hover:opacity-100`}>
+              <button
+                onClick={(e) => {
+                  e.preventDefault(); e.stopPropagation();
+                  setIsMuted(!isMuted);
+                  const v = e.currentTarget.closest('.group')?.querySelector('video');
+                  if (v) v.muted = !isMuted;
+                }}
+                className="p-2.5 bg-black/40 text-white rounded-full backdrop-blur-md hover:bg-black/80 transition-colors pointer-events-auto shadow-lg"
+              >
+                {isMuted ? <FiVolumeX size={16} /> : <FiVolume2 size={16} />}
+              </button>
+            </div>
           )}
 
-          {/* Shimmer on hover */}
+          {/* Shimmer */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[2rem]">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
           </div>
@@ -235,11 +258,12 @@ function ProjectCard({ project, index }: { project: any; index: number }) {
 /* ─── Page ──────────────────────────────────────────────────── */
 export default function PortfolioPage() {
   const [categories, setCategories] = useState<any[]>([]);
-  const [projects, setProjects] = useState<any[]>([]);
+  const [projects, setProjects]     = useState<any[]>([]);
   const [activeCategory, setActiveCategory] = useState('all');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]       = useState(true);
 
   useEffect(() => {
+    // Parallel fetch — categories and projects load simultaneously
     Promise.all([
       api('/api/categories').then(r => r.json()),
       api('/api/projects').then(r => r.json()),
@@ -250,14 +274,18 @@ export default function PortfolioPage() {
     }).catch(() => setLoading(false));
   }, []);
 
-  const filtered = activeCategory === 'all'
-    ? projects
-    : projects.filter(p => p.category?._id === activeCategory || p.category?.slug === activeCategory);
+  // Memoized filter — avoids recalculating on every render
+  const filtered = useMemo(
+    () => activeCategory === 'all'
+      ? projects
+      : projects.filter(p => p.category?._id === activeCategory || p.category?.slug === activeCategory),
+    [projects, activeCategory]
+  );
 
   return (
     <div className="site-container section-pad">
 
-      {/* ── Page Header ── */}
+      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -278,10 +306,9 @@ export default function PortfolioPage() {
         </p>
       </motion.div>
 
-      {/* ── Marquee ── */}
       <Marquee />
 
-      {/* ── Category Filter ── */}
+      {/* Category Filter */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -311,15 +338,11 @@ export default function PortfolioPage() {
         })}
       </motion.div>
 
-      {/* ── Grid ── */}
+      {/* Grid — shows skeletons while loading, real cards after */}
       {loading ? (
-        <div className="flex items-center justify-center py-32 gap-3 text-[var(--muted)]">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
-            className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full"
-          />
-          Loading projects…
+        // ── Skeleton Grid: 6 placeholder cards in masonry layout ──
+        <div className="columns-1 sm:columns-2 lg:columns-3 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
         </div>
       ) : filtered.length === 0 ? (
         <motion.div
@@ -335,10 +358,11 @@ export default function PortfolioPage() {
         <AnimatePresence mode="wait">
           <motion.div
             key={activeCategory}
-            variants={gridVariants}
             initial="hidden"
             animate="visible"
             exit={{ opacity: 0, transition: { duration: 0.2 } }}
+            // Stagger cards for a smooth cascade reveal
+            variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.06, delayChildren: 0.03 } } }}
             className="columns-1 sm:columns-2 lg:columns-3 gap-6"
           >
             {filtered.map((project, i) => (
