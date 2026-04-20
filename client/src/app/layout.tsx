@@ -12,12 +12,12 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Pratik Rajput | Creative Designer & Video Editor",
-  description: "Professional graphic design and video editing services. Creating stunning visuals that tell your brand story.",
+  title: "Brave Portfolio | Web Developer",
+  description: "Portfolio website showcasing web development",
   keywords: "graphic design, video editing, creative services, branding, motion graphics",
   openGraph: {
-    title: "Pratik Rajput | Creative Designer & Video Editor",
-    description: "Professional graphic design and video editing services.",
+    title: "Brave Portfolio | Web Developer",
+    description: "Portfolio website showcasing web development",
     type: "website",
   },
   verification: {
