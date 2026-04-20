@@ -24,14 +24,7 @@ router.post('/', requireAuth, upload.single('file'), async (req: Request, res: R
   const folder       = (req.body.folder as string) || 'portfolio';
   const resourceType = (req.body.resourceType as 'image' | 'video' | 'auto') || 'auto';
 
-  // Determine if image for compression settings
-  const isImage = req.file.mimetype.startsWith('image/');
-
-  const result = await uploadToCloudinary(
-    req.file.buffer,
-    folder,
-    isImage ? 'image' : resourceType
-  );
+  const result = await uploadToCloudinary(req.file.buffer, folder, resourceType);
 
   res.json({ url: result.url, publicId: result.publicId });
 });

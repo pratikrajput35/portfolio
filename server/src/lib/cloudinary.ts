@@ -13,19 +13,11 @@ export async function uploadToCloudinary(
   resourceType: 'image' | 'video' | 'auto' = 'auto'
 ): Promise<{ url: string; publicId: string }> {
   return new Promise((resolve, reject) => {
-    const isImage = resourceType === 'image';
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder,
         resource_type: resourceType,
-        // ── Image-only optimizations ──────────────────────────────────────────
-        // Videos are uploaded untouched to preserve quality
-        ...(isImage && {
-          quality:      'auto:good',  // compress images ~70%
-          fetch_format: 'auto',       // serve webp/avif automatically
-          width:        1280,         // max width 1280px
-          crop:         'limit',      // only downscale, never upscale
-        }),
+        // No compression or resizing — upload at full original quality
       },
       (error, result) => {
         if (error) return reject(error);
