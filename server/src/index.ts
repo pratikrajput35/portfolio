@@ -38,6 +38,7 @@ app.use(
       if (allowedOrigins.includes(origin)) return callback(null, true);
       callback(new Error(`CORS: origin ${origin} not allowed`));
     },
+    methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true, // Required for cookies to work cross-domain
   })
 );
