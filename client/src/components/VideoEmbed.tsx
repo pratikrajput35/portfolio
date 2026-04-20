@@ -35,6 +35,7 @@ interface VideoEmbedProps {
   provider?: 'youtube' | 'drive' | null;
   className?: string;
   title?: string;
+  aspectRatio?: string; // e.g. 'aspect-video' or 'aspect-[9/16]'
 }
 
 export default function VideoEmbed({
@@ -42,15 +43,16 @@ export default function VideoEmbed({
   provider,
   className = '',
   title = 'Project Video',
+  aspectRatio: manualAspectRatio,
 }: VideoEmbedProps) {
   const p = provider || detectVideoProvider(url);
+  const isYouTubeShort = url.includes('/shorts/');
 
   let embedUrl = '';
 
   if (p === 'youtube') {
     const id = parseYouTubeId(url);
     if (!id) return null;
-    // Shorts are auto-normalized to standard embed — no special handling needed
     embedUrl = `https://www.youtube.com/embed/${id}?rel=0`;
   } else if (p === 'drive') {
     const id = parseDriveId(url);
@@ -62,10 +64,13 @@ export default function VideoEmbed({
 
   const blockContext = (e: React.MouseEvent) => e.preventDefault();
 
+  // Determine aspect ratio class
+  const finalAspectRatio = manualAspectRatio || (isYouTubeShort ? 'aspect-[9/16] max-w-[400px] mx-auto' : 'aspect-video');
+
   return (
     // `media-protected` applies CSS shield; `select-none` prevents text selection around iframe
     <div
-      className={`media-protected relative w-full aspect-video rounded-2xl overflow-hidden bg-black select-none ${className}`}
+      className={`media-protected relative w-full rounded-2xl overflow-hidden bg-black select-none ${finalAspectRatio} ${className}`}
       onContextMenu={blockContext}
     >
       <iframe
@@ -75,7 +80,6 @@ export default function VideoEmbed({
         allowFullScreen
         loading="lazy"
         className="absolute inset-0 w-full h-full border-0"
-        // Note: sandbox and referrerPolicy removed temporarily to troubleshoot "Error 153"
       />
     </div>
   );

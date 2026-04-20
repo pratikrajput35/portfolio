@@ -96,11 +96,13 @@ function ProjectCard({ project, index }: { project: any; index: number }) {
 
   const isAboveFold = index < 3;
 
+  const isShort = project.videoUrl?.includes('/shorts/') || project.videoUrl?.includes('youtube.com/shorts');
+
   return (
     <motion.div
       ref={cardRef}
       variants={cardVariants}
-      className="break-inside-avoid pb-6"
+      className={`break-inside-avoid pb-6 ${isShort ? 'row-span-2' : ''}`}
       onHoverStart={() => setHovered(true)}
       onHoverEnd={() => setHovered(false)}
     >
@@ -158,10 +160,20 @@ function ProjectCard({ project, index }: { project: any; index: number }) {
           {/* YouTube Hover Preview */}
           {hovered && project.videoProvider === 'youtube' && project.videoUrl && (
             <div className="absolute inset-0 w-full h-full z-0 overflow-hidden pointer-events-none scale-105 transition-opacity duration-700">
+              {/* Blurred background for vertical/shorts */}
+              {isShort && (
+                <div className="absolute inset-0 z-0">
+                   <iframe
+                    src={`https://www.youtube-nocookie.com/embed/${project.videoUrl.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]+)/)?.[1]}?autoplay=1&mute=1&controls=0&loop=1&playlist=${project.videoUrl.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]+)/)?.[1]}&rel=0&enablejsapi=1`}
+                    className="absolute inset-0 w-full h-full border-0 scale-[2.5] blur-xl opacity-50"
+                  />
+                </div>
+              )}
+              
               <iframe
                 id={`yt-hover-portfolio-${project._id}`}
                 src={`https://www.youtube-nocookie.com/embed/${project.videoUrl.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]+)/)?.[1]}?autoplay=1&mute=${isMuted ? 1 : 0}&controls=0&loop=1&playlist=${project.videoUrl.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]+)/)?.[1]}&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&showinfo=0&enablejsapi=1`}
-                className="absolute inset-0 w-[150%] h-[150%] top-[-25%] left-[-25%] pointer-events-none border-0"
+                className={`absolute inset-0 border-0 pointer-events-none ${isShort ? 'w-full h-full object-contain px-[15%]' : 'w-[150%] h-[150%] top-[-25%] left-[-25%]'}`}
                 allow="autoplay; encrypted-media"
               />
             </div>
