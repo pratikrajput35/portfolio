@@ -4,7 +4,10 @@ import { uploadToCloudinary } from '../lib/cloudinary';
 import { requireAuth } from '../lib/auth';
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB max
+});
 
 // POST /api/upload (protected)
 router.post('/', requireAuth, upload.single('file'), async (req: Request, res: Response) => {
@@ -18,10 +21,18 @@ router.post('/', requireAuth, upload.single('file'), async (req: Request, res: R
     return;
   }
 
-  const folder = (req.body.folder as string) || 'portfolio';
+  const folder       = (req.body.folder as string) || 'portfolio';
   const resourceType = (req.body.resourceType as 'image' | 'video' | 'auto') || 'auto';
 
-  const result = await uploadToCloudinary(req.file.buffer, folder, resourceType);
+  // Determine if image for compression settings
+  const isImage = req.file.mimetype.startsWith('image/');
+
+  const result = await uploadToCloudinary(
+    req.file.buffer,
+    folder,
+    isImage ? 'image' : resourceType
+  );
+
   res.json({ url: result.url, publicId: result.publicId });
 });
 

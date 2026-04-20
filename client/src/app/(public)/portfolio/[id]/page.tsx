@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
 import { FiArrowLeft, FiTag, FiUser, FiCalendar, FiExternalLink } from 'react-icons/fi';
+import VideoEmbed from '@/components/VideoEmbed';
 
 /* ─── Word-by-word title animation ──────────────────────────── */
 function AnimatedTitle({ text }: { text: string }) {
@@ -127,8 +128,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             {project.description}
           </motion.p>
 
-          {/* Video */}
-          {project.videoUrl && (
+          {/* Video — YouTube, Google Drive, or raw URL */}
+          {(project.videoUrl || project.googleDriveLink) && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -136,29 +137,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               className="mb-10"
             >
               <h3 className="font-bold text-lg mb-4">Project Video</h3>
-              <div className="relative rounded-2xl overflow-hidden bg-black border border-[var(--border)] flex justify-center">
-                <video src={project.videoUrl} preload="none" controls controlsList="nodownload" onContextMenu={(e) => e.preventDefault()} className="w-full h-auto max-h-[85vh] object-contain" />
-              </div>
-            </motion.div>
-          )}
-
-          {/* Google Drive */}
-          {project.googleDriveLink && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="mb-10"
-            >
-              <a
-                href={project.googleDriveLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-3 px-6 py-3 rounded-full glass-card hover:bg-white/10 transition-colors border border-white/10 text-white font-medium shadow-lg shadow-black/20"
-              >
-                <span className="text-orange-500">📁</span> View High-Res Media on Google Drive
-                <FiExternalLink size={14} />
-              </a>
+              <VideoEmbed
+                url={project.videoUrl || project.googleDriveLink}
+                provider={project.videoProvider}
+                title={project.title}
+                className="border border-[var(--border)] shadow-xl shadow-black/30"
+              />
             </motion.div>
           )}
 

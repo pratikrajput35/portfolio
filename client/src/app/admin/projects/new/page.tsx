@@ -1,113 +1,96 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import Image from 'next/image';
-import { FiUpload, FiArrowLeft, FiSave, FiX } from 'react-icons/fi';
+import { FiArrowLeft, FiSave, FiX, FiUpload, FiYoutube, FiLink } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
+import VideoEmbed, { detectVideoProvider } from '@/components/VideoEmbed';
+import ThumbnailPicker from '@/components/admin/ThumbnailPicker';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+type VideoProvider = 'youtube' | 'drive' | null;
 
 const EMPTY_FORM = {
   title: '', slug: '', shortDescription: '', description: '',
   category: '', client: '', tags: '', isFeatured: false, isPublished: true, order: 0,
-  coverImage: '', images: [] as string[], gallery: [] as {url: string, type: 'image'|'video'}[], videoUrl: '', googleDriveLink: '',
+  coverImage: '', images: [] as string[],
+  gallery: [] as { url: string; type: 'image' | 'video' }[],
+  videoUrl: '', videoProvider: null as VideoProvider,
 };
 
-interface ProjectFormPageProps {
-  projectId?: string;
-}
+// ─── Slug helper ──────────────────────────────────────────────────────────────
+const generateSlug = (s: string) =>
+  s.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function ProjectFormPage() {
-  const router = useRouter();
-  const params = useParams();
-  const isEdit = params?.id && params.id !== 'new';
-  const [form, setForm] = useState({ ...EMPTY_FORM });
-  const [categories, setCategories] = useState<any[]>([]);
+  const router   = useRouter();
+  const params   = useParams();
+  const isEdit   = Boolean(params?.id && params.id !== 'new');
+  const projectId = params?.id as string | undefined;
+
+  const [form, setForm]         = useState({ ...EMPTY_FORM });
+  const [categories, setCats]   = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const coverInputRef = useRef<HTMLInputElement>(null);
-  const galleryInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
+  const [saving, setSaving]     = useState(false);
+  const [videoInput, setVideoInput] = useState('');   // raw URL being typed
+  const [newCatName, setNewCatName] = useState('');
+  const [addingCat, setAddingCat]   = useState(false);
 
-  const [isAddingCategory, setIsAddingCategory] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState('');
+  const galleryRef = useRef<HTMLInputElement>(null);
 
-  const handleCreateCategory = async () => {
-    if (!newCategoryName.trim()) return;
-    const toastId = toast.loading('Creating category...');
-    try {
-      const res = await api('/api/categories', {
-        method: 'POST',
-        json: { name: newCategoryName.trim(), slug: generateSlug(newCategoryName), description: '' }
-      });
-      if (res.ok) {
-        const newCat = await res.json();
-        setCategories([...categories, newCat]);
-        setForm({ ...form, category: newCat._id });
-        setIsAddingCategory(false);
-        setNewCategoryName('');
-        toast.success('Category created!', { id: toastId });
-      } else {
-        toast.error('Failed to create category', { id: toastId });
-      }
-    } catch {
-      toast.error('Server error', { id: toastId });
-    }
-  };
-
+  // ── Load data ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    api('/api/categories').then(r => r.json()).then(d => setCategories(Array.isArray(d) ? d : []));
-    if (isEdit) {
-      api(`/api/projects/${params.id}`).then(r => r.json()).then(proj => {
-        if (proj._id) {
-          setForm({
-            title: proj.title || '',
-            slug: proj.slug || '',
-            shortDescription: proj.shortDescription || '',
-            description: proj.description || '',
-            category: proj.category?._id || proj.category || '',
-            client: proj.client || '',
-            tags: proj.tags?.join(', ') || '',
-            isFeatured: proj.isFeatured || false,
-            isPublished: proj.isPublished ?? true,
-            order: proj.order || 0,
-            coverImage: proj.coverImage || '',
-            images: proj.images || [],
-            gallery: proj.gallery?.length ? proj.gallery : (proj.images?.map((img: string) => ({ url: img, type: 'image' })) || []),
-            videoUrl: proj.videoUrl || '',
-            googleDriveLink: proj.googleDriveLink || '',
-          });
-        }
+    api('/api/categories').then(r => r.json()).then(d => setCats(Array.isArray(d) ? d : []));
+
+    if (isEdit && projectId) {
+      api(`/api/projects/${projectId}`).then(r => r.json()).then(proj => {
+        if (!proj._id) return;
+        setForm({
+          title:            proj.title || '',
+          slug:             proj.slug  || '',
+          shortDescription: proj.shortDescription || '',
+          description:      proj.description || '',
+          category:         proj.category?._id || proj.category || '',
+          client:           proj.client || '',
+          tags:             proj.tags?.join(', ') || '',
+          isFeatured:       proj.isFeatured  || false,
+          isPublished:      proj.isPublished ?? true,
+          order:            proj.order || 0,
+          coverImage:       proj.coverImage || '',
+          images:           proj.images || [],
+          gallery:          proj.gallery?.length
+                              ? proj.gallery
+                              : (proj.images?.map((u: string) => ({ url: u, type: 'image' })) || []),
+          videoUrl:         proj.videoUrl || '',
+          videoProvider:    proj.videoProvider || detectVideoProvider(proj.videoUrl || '') || null,
+        });
+        setVideoInput(proj.videoUrl || '');
       });
     }
-  }, [isEdit, params?.id]);
+  }, [isEdit, projectId]);
 
-  const generateSlug = (name: string) => name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-
+  // ── Upload file to Cloudinary ──────────────────────────────────────────────
   const uploadFile = async (file: File, folder = 'portfolio'): Promise<string | null> => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('folder', folder);
-    formData.append('resourceType', file.type.startsWith('video') ? 'video' : 'image');
-    const res = await api('/api/upload', { method: 'POST', body: formData });
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('folder', folder);
+    fd.append('resourceType', file.type.startsWith('video') ? 'video' : 'image');
+    const res = await api('/api/upload', { method: 'POST', body: fd });
     if (!res.ok) return null;
-    const data = await res.json();
-    return data.url;
+    return (await res.json()).url;
   };
 
-  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // ── Thumbnail upload wrapper ───────────────────────────────────────────────
+  const handleThumbnailUpload = async (file: File): Promise<string | null> => {
     setUploading(true);
     const url = await uploadFile(file);
-    if (url) {
-      setForm(p => ({ ...p, coverImage: url }));
-      toast.success('Cover image uploaded!');
-    } else {
-      toast.error('Upload failed. Check Cloudinary config.');
-    }
     setUploading(false);
+    if (!url) { toast.error('Upload failed. Check Cloudinary config.'); return null; }
+    return url;
   };
 
+  // ── Gallery upload ─────────────────────────────────────────────────────────
   const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -115,248 +98,361 @@ export default function ProjectFormPage() {
     const results = await Promise.all(
       files.map(async f => {
         const url = await uploadFile(f);
-        return { url, type: f.type.startsWith('video') ? 'video' : 'image' };
+        return url ? { url, type: f.type.startsWith('video') ? 'video' : 'image' } : null;
       })
     );
-    const validResults = results.filter(r => r.url) as {url: string, type: 'video' | 'image'}[];
-    setForm(p => ({ ...p, gallery: [...p.gallery, ...validResults] }));
-    toast.success(`${validResults.length} item(s) uploaded!`);
+    const valid = results.filter(Boolean) as { url: string; type: 'image' | 'video' }[];
+    setForm(p => ({ ...p, gallery: [...p.gallery, ...valid] }));
+    if (valid.length) toast.success(`${valid.length} file(s) uploaded!`);
+    else toast.error('All uploads failed.');
     setUploading(false);
+    e.target.value = '';
   };
 
-  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    const toastId = toast.loading('Uploading video... This may take a moment.');
-    const url = await uploadFile(file);
-    if (url) {
-      setForm(p => ({ ...p, videoUrl: url }));
-      toast.success('Video uploaded successfully!', { id: toastId });
-    } else {
-      toast.error('Video upload failed.', { id: toastId });
+  // ── Apply video URL ────────────────────────────────────────────────────────
+  const applyVideoUrl = (raw: string) => {
+    const url = raw.trim();
+    const provider = detectVideoProvider(url);
+    setForm(p => ({ ...p, videoUrl: url, videoProvider: provider }));
+    // If YouTube → pre-fill cover with max-res thumbnail as suggestion
+    if (provider === 'youtube' && !form.coverImage) {
+      const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+      if (match) {
+        const suggested = `https://img.youtube.com/vi/${match[1]}/maxresdefault.jpg`;
+        setForm(p => ({ ...p, videoUrl: url, videoProvider: provider, coverImage: p.coverImage || suggested }));
+      }
     }
-    setUploading(false);
   };
 
-  const removeGalleryItem = (idx: number) => {
-    setForm(p => ({ ...p, gallery: p.gallery.filter((_, i) => i !== idx) }));
+  // ── Create category ────────────────────────────────────────────────────────
+  const handleCreateCat = async () => {
+    if (!newCatName.trim()) return;
+    const tid = toast.loading('Creating...');
+    try {
+      const res = await api('/api/categories', {
+        method: 'POST',
+        json: { name: newCatName.trim(), slug: generateSlug(newCatName), description: '' },
+      });
+      if (res.ok) {
+        const cat = await res.json();
+        setCats(c => [...c, cat]);
+        setForm(p => ({ ...p, category: cat._id }));
+        setAddingCat(false);
+        setNewCatName('');
+        toast.success('Category created!', { id: tid });
+      } else {
+        toast.error('Failed', { id: tid });
+      }
+    } catch {
+      toast.error('Error', { id: tid });
+    }
   };
 
+  // ── Save ───────────────────────────────────────────────────────────────────
   const handleSave = async () => {
-    if (!form.title) return toast.error('Title is required');
+    if (!form.title)       return toast.error('Title is required');
     if (!form.description) return toast.error('Description is required');
-    if (!form.category) return toast.error('Select a category');
-    if (!form.coverImage) return toast.error('Cover image is required');
+    if (!form.category)    return toast.error('Select a category');
+    if (!form.coverImage)  return toast.error('Cover / thumbnail image is required');
 
     setSaving(true);
     const payload = {
       ...form,
       slug: form.slug || generateSlug(form.title),
       tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
+      images: form.gallery.filter(g => g.type === 'image').map(g => g.url),
     };
 
-    const url = isEdit ? `/api/projects/${params.id}` : '/api/projects';
+    const url    = isEdit ? `/api/projects/${projectId}` : '/api/projects';
     const method = isEdit ? 'PUT' : 'POST';
-    const res = await api(url, { method, json: payload });
+    const res    = await api(url, { method, json: payload });
+
     if (res.ok) {
       toast.success(isEdit ? 'Project updated!' : 'Project created!');
       router.push('/admin/projects');
     } else {
-      const d = await res.json();
+      const d = await res.json().catch(() => ({}));
       toast.error(d.error || 'Error saving project');
     }
     setSaving(false);
   };
 
+  // ─── UI ───────────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="max-w-5xl space-y-6">
+
+      {/* Header */}
       <div className="flex items-center gap-4">
         <button onClick={() => router.push('/admin/projects')} className="p-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white transition-all">
           <FiArrowLeft />
         </button>
         <div>
           <h1 className="text-2xl font-bold text-white">{isEdit ? 'Edit Project' : 'New Project'}</h1>
-          <p className="text-gray-400 text-sm">Fill in the project details below</p>
+          <p className="text-gray-500 text-sm">Fill in all required fields (*) to save</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main fields */}
+
+        {/* ── Left/Main column ── */}
         <div className="lg:col-span-2 space-y-5">
+
+          {/* Basic Info */}
           <div className="bg-[#111] border border-gray-800 rounded-2xl p-6 space-y-4">
-            <h3 className="font-semibold text-white">Basic Info</h3>
+            <h3 className="font-semibold text-white text-sm uppercase tracking-wider">Basic Info</h3>
+
             <div>
-              <label className="block text-xs text-gray-400 mb-1">Title *</label>
-              <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value, slug: generateSlug(e.target.value) }))}
+              <label className="block text-xs text-gray-400 mb-1">Title <span className="text-red-400">*</span></label>
+              <input
+                value={form.title}
+                onChange={e => setForm(p => ({ ...p, title: e.target.value, slug: generateSlug(e.target.value) }))}
                 placeholder="Project title"
-                className="w-full px-3 py-2.5 rounded-xl bg-[#0a0a0a] border border-gray-700 text-white text-sm focus:border-orange-500 focus:outline-none" />
+                className="w-full px-3 py-2.5 rounded-xl bg-[#0a0a0a] border border-gray-700 text-white text-sm focus:border-orange-500 focus:outline-none"
+              />
             </div>
+
             <div>
               <label className="block text-xs text-gray-400 mb-1">Short Description</label>
-              <input value={form.shortDescription} onChange={e => setForm(p => ({ ...p, shortDescription: e.target.value }))}
-                placeholder="Brief one-liner for cards"
-                className="w-full px-3 py-2.5 rounded-xl bg-[#0a0a0a] border border-gray-700 text-white text-sm focus:border-orange-500 focus:outline-none" />
+              <input
+                value={form.shortDescription}
+                onChange={e => setForm(p => ({ ...p, shortDescription: e.target.value }))}
+                placeholder="One-liner for project cards"
+                className="w-full px-3 py-2.5 rounded-xl bg-[#0a0a0a] border border-gray-700 text-white text-sm focus:border-orange-500 focus:outline-none"
+              />
             </div>
+
             <div>
-              <label className="block text-xs text-gray-400 mb-1">Full Description *</label>
-              <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
-                rows={5} placeholder="Detailed project description..."
-                className="w-full px-3 py-2.5 rounded-xl bg-[#0a0a0a] border border-gray-700 text-white text-sm focus:border-orange-500 focus:outline-none resize-none" />
+              <label className="block text-xs text-gray-400 mb-1">Full Description <span className="text-red-400">*</span></label>
+              <textarea
+                value={form.description}
+                onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
+                rows={5}
+                placeholder="Detailed project description..."
+                className="w-full px-3 py-2.5 rounded-xl bg-[#0a0a0a] border border-gray-700 text-white text-sm focus:border-orange-500 focus:outline-none resize-none"
+              />
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs text-gray-400 mb-1">Client</label>
-                <input value={form.client} onChange={e => setForm(p => ({ ...p, client: e.target.value }))}
+                <input
+                  value={form.client}
+                  onChange={e => setForm(p => ({ ...p, client: e.target.value }))}
                   placeholder="Client name (optional)"
-                  className="w-full px-3 py-2.5 rounded-xl bg-[#0a0a0a] border border-gray-700 text-white text-sm focus:border-orange-500 focus:outline-none" />
+                  className="w-full px-3 py-2.5 rounded-xl bg-[#0a0a0a] border border-gray-700 text-white text-sm focus:border-orange-500 focus:outline-none"
+                />
               </div>
               <div>
                 <label className="block text-xs text-gray-400 mb-1">Tags (comma separated)</label>
-                <input value={form.tags} onChange={e => setForm(p => ({ ...p, tags: e.target.value }))}
+                <input
+                  value={form.tags}
+                  onChange={e => setForm(p => ({ ...p, tags: e.target.value }))}
                   placeholder="logo, branding, print"
-                  className="w-full px-3 py-2.5 rounded-xl bg-[#0a0a0a] border border-gray-700 text-white text-sm focus:border-orange-500 focus:outline-none" />
+                  className="w-full px-3 py-2.5 rounded-xl bg-[#0a0a0a] border border-gray-700 text-white text-sm focus:border-orange-500 focus:outline-none"
+                />
               </div>
             </div>
           </div>
 
-          {/* Media */}
+          {/* ── Video ── */}
           <div className="bg-[#111] border border-gray-800 rounded-2xl p-6 space-y-4">
-            <h3 className="font-semibold text-white">Media</h3>
-            {/* Cover */}
-            <div>
-              <label className="block text-xs text-gray-400 mb-2">Cover Image / Video Thumbnail * (Shown in portfolio grid)</label>
-              {form.coverImage ? (
-                <div className="relative aspect-video rounded-xl overflow-hidden mb-2">
-                  <Image src={form.coverImage} alt="cover" fill className="object-cover" />
-                  <button onClick={() => setForm(p => ({ ...p, coverImage: '' }))} className="absolute top-2 right-2 w-7 h-7 bg-red-500 rounded-full flex items-center justify-center text-white">
-                    <FiX size={13} />
-                  </button>
-                </div>
-              ) : (
-                <button onClick={() => coverInputRef.current?.click()} disabled={uploading}
-                  className="w-full aspect-video border-2 border-dashed border-gray-700 rounded-xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-orange-500 hover:text-orange-400 transition-all">
-                  <FiUpload size={24} />
-                  <span className="text-sm">{uploading ? 'Uploading...' : 'Click to upload cover image'}</span>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-white text-sm uppercase tracking-wider">Video (Optional)</h3>
+              {form.videoUrl && (
+                <button
+                  type="button"
+                  onClick={() => { setForm(p => ({ ...p, videoUrl: '', videoProvider: null })); setVideoInput(''); }}
+                  className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
+                >
+                  <FiX size={12} /> Remove
                 </button>
               )}
-              <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
             </div>
 
-            {/* Gallery */}
+            {/* URL input */}
             <div>
-              <label className="block text-xs text-gray-400 mb-2">Gallery Media</label>
-              <div className="grid grid-cols-3 gap-2 mb-2">
+              <label className="block text-xs text-gray-400 mb-1.5 flex items-center gap-1.5">
+                <FiLink size={11} /> Paste YouTube or Google Drive URL
+              </label>
+              <div className="flex gap-2">
+                <input
+                  value={videoInput}
+                  onChange={e => setVideoInput(e.target.value)}
+                  onBlur={() => { if (videoInput.trim()) applyVideoUrl(videoInput); }}
+                  onKeyDown={e => { if (e.key === 'Enter') applyVideoUrl(videoInput); }}
+                  placeholder="https://youtube.com/watch?v=... or https://drive.google.com/file/d/..."
+                  className="flex-1 px-3 py-2.5 rounded-xl bg-[#0a0a0a] border border-gray-700 text-white text-sm focus:border-orange-500 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => applyVideoUrl(videoInput)}
+                  className="px-4 py-2.5 rounded-xl bg-orange-500/10 border border-orange-500/30 text-orange-400 text-sm font-medium hover:bg-orange-500/20 transition-all whitespace-nowrap"
+                >
+                  Apply
+                </button>
+              </div>
+
+              {/* Provider badge */}
+              {form.videoProvider && (
+                <div className="mt-2 flex items-center gap-1.5">
+                  {form.videoProvider === 'youtube' ? (
+                    <span className="text-[11px] text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <FiYoutube size={10} /> YouTube detected ✓
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-full">
+                      📁 Google Drive detected ✓
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Live embed preview */}
+            {form.videoUrl && form.videoProvider && (
+              <div>
+                <p className="text-xs text-gray-500 mb-2">Preview:</p>
+                <VideoEmbed url={form.videoUrl} provider={form.videoProvider} className="border border-gray-800" />
+              </div>
+            )}
+          </div>
+
+          {/* ── Thumbnail Picker ── */}
+          <div className="bg-[#111] border border-gray-800 rounded-2xl p-6">
+            <ThumbnailPicker
+              videoUrl={form.videoUrl}
+              provider={form.videoProvider}
+              current={form.coverImage}
+              onChange={url => setForm(p => ({ ...p, coverImage: url }))}
+              onUpload={handleThumbnailUpload}
+              uploading={uploading}
+            />
+          </div>
+
+          {/* ── Gallery ── */}
+          <div className="bg-[#111] border border-gray-800 rounded-2xl p-6 space-y-3">
+            <h3 className="font-semibold text-white text-sm uppercase tracking-wider">Gallery Images</h3>
+            <p className="text-xs text-gray-500">Additional images shown on the project detail page. Upload high-res images — they will be auto-compressed.</p>
+
+            {form.gallery.length > 0 && (
+              <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
                 {form.gallery.map((item, i) => (
-                  <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-black border border-gray-800">
-                    {item.type === 'video' ? (
-                      <video src={item.url} className="w-full h-full object-cover" muted playsInline />
-                    ) : (
-                      <Image src={item.url} alt={`gallery-item-${i}`} fill className="object-cover" />
-                    )}
-                    <button onClick={() => removeGalleryItem(i)} className="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white z-10">
+                  <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-black border border-gray-800 group">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={item.url} alt={`gallery-${i}`} className="w-full h-full object-cover" loading="lazy" />
+                    <button
+                      type="button"
+                      onClick={() => setForm(p => ({ ...p, gallery: p.gallery.filter((_, idx) => idx !== i) }))}
+                      className="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                    >
                       <FiX size={10} />
                     </button>
                   </div>
                 ))}
               </div>
-              <button onClick={() => galleryInputRef.current?.click()} disabled={uploading}
-                className="w-full py-2.5 border border-dashed border-gray-700 rounded-xl text-gray-400 text-sm hover:border-orange-500 hover:text-orange-400 transition-all">
-                {uploading ? 'Uploading...' : '+ Add gallery media (images/videos)'}
-              </button>
-              <input ref={galleryInputRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={handleGalleryUpload} />
-            </div>
+            )}
 
-            {/* Video */}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs text-gray-400 mb-2">Hover Preview Video (optional - Plays on hover in portfolio)</label>
-                {form.videoUrl ? (
-                  <div className="relative aspect-video rounded-xl overflow-hidden mb-2 bg-black border border-gray-800">
-                    <video src={form.videoUrl} controls className="w-full h-full object-contain" />
-                    <button onClick={() => setForm(p => ({ ...p, videoUrl: '' }))} className="absolute top-2 right-2 w-7 h-7 bg-red-500 rounded-full flex items-center justify-center text-white z-10">
-                      <FiX size={13} />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <input value={form.videoUrl} onChange={e => setForm(p => ({ ...p, videoUrl: e.target.value }))}
-                      placeholder="https://cloudinary.com/video/..."
-                      className="flex-1 px-3 py-2.5 rounded-xl bg-[#0a0a0a] border border-gray-700 text-white text-sm focus:border-orange-500 focus:outline-none" />
-                    <button type="button" onClick={() => videoInputRef.current?.click()} disabled={uploading}
-                      className="px-4 py-2.5 rounded-xl gradient-bg text-white text-sm font-semibold hover:opacity-90 disabled:opacity-50 whitespace-nowrap flex items-center gap-2">
-                      <FiUpload size={16} /> {uploading ? 'Uploading...' : 'Upload Video'}
-                    </button>
-                    <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} />
-                  </div>
-                )}
-              </div>
-              
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Google Drive Link (optional)</label>
-                <input value={form.googleDriveLink} onChange={e => setForm(p => ({ ...p, googleDriveLink: e.target.value }))}
-                  placeholder="https://drive.google.com/file/d/..."
-                  className="w-full px-3 py-2.5 rounded-xl bg-[#0a0a0a] border border-gray-700 text-white text-sm focus:border-orange-500 focus:outline-none" />
-                <p className="text-[10px] text-gray-500 mt-1">Provide an external link to Drive photos or videos for this project.</p>
-              </div>
-            </div>
+            <button
+              type="button"
+              onClick={() => galleryRef.current?.click()}
+              disabled={uploading}
+              className="w-full py-3 border border-dashed border-gray-700 rounded-xl text-gray-400 text-sm hover:border-orange-500/60 hover:text-orange-400 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <FiUpload size={15} />
+              {uploading ? 'Uploading...' : `${form.gallery.length > 0 ? 'Add more' : '+ Add'} gallery images`}
+            </button>
+            <input ref={galleryRef} type="file" accept="image/*" multiple className="hidden" onChange={handleGalleryUpload} />
           </div>
+
         </div>
 
-        {/* Sidebar */}
+        {/* ── Right sidebar ── */}
         <div className="space-y-4">
-          <div className="bg-[#111] border border-gray-800 rounded-2xl p-6 space-y-4">
-            <h3 className="font-semibold text-white">Settings</h3>
+          <div className="bg-[#111] border border-gray-800 rounded-2xl p-6 space-y-4 lg:sticky lg:top-6">
+            <h3 className="font-semibold text-white text-sm uppercase tracking-wider">Settings</h3>
+
             {/* Category */}
             <div>
               <div className="flex justify-between items-center mb-1">
-                <label className="block text-xs text-gray-400">Category *</label>
-                {!isAddingCategory && (
-                  <button type="button" onClick={() => setIsAddingCategory(true)} className="text-orange-500 text-xs hover:underline font-medium">+ New Category</button>
+                <label className="text-xs text-gray-400">Category <span className="text-red-400">*</span></label>
+                {!addingCat && (
+                  <button type="button" onClick={() => setAddingCat(true)} className="text-orange-500 text-xs hover:underline">
+                    + New
+                  </button>
                 )}
               </div>
-              {isAddingCategory ? (
+              {addingCat ? (
                 <div className="flex gap-2">
-                  <input autoFocus value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)}
-                    placeholder="e.g. Graphic Design"
-                    className="flex-1 px-3 py-2.5 rounded-xl bg-[#0a0a0a] border border-gray-700 text-white text-sm focus:border-orange-500 focus:outline-none" />
-                  <button type="button" onClick={handleCreateCategory} disabled={!newCategoryName.trim()}
-                    className="px-4 bg-white text-black text-sm rounded-xl font-medium disabled:opacity-50">Add</button>
-                  <button type="button" onClick={() => { setIsAddingCategory(false); setNewCategoryName(''); }}
-                    className="px-3 bg-red-500/10 text-red-500 text-sm rounded-xl hover:bg-red-500/20">Cancel</button>
+                  <input
+                    autoFocus
+                    value={newCatName}
+                    onChange={e => setNewCatName(e.target.value)}
+                    placeholder="Category name"
+                    className="flex-1 px-3 py-2 rounded-xl bg-[#0a0a0a] border border-gray-700 text-white text-sm focus:border-orange-500 focus:outline-none"
+                    onKeyDown={e => e.key === 'Enter' && handleCreateCat()}
+                  />
+                  <button type="button" onClick={handleCreateCat} disabled={!newCatName.trim()} className="px-3 bg-orange-500 text-white text-sm rounded-xl disabled:opacity-50">Add</button>
+                  <button type="button" onClick={() => { setAddingCat(false); setNewCatName(''); }} className="px-3 bg-gray-700 text-gray-300 text-sm rounded-xl">✕</button>
                 </div>
               ) : (
-                <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-xl bg-[#0a0a0a] border border-gray-700 text-white text-sm focus:border-orange-500 focus:outline-none">
+                <select
+                  value={form.category}
+                  onChange={e => setForm(p => ({ ...p, category: e.target.value }))}
+                  className="w-full px-3 py-2.5 rounded-xl bg-[#0a0a0a] border border-gray-700 text-white text-sm focus:border-orange-500 focus:outline-none"
+                >
                   <option value="">Select category</option>
                   {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
                 </select>
               )}
             </div>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <div className={`w-10 h-6 rounded-full transition-all ${form.isPublished ? 'bg-orange-500' : 'bg-gray-700'} relative`} onClick={() => setForm(p => ({ ...p, isPublished: !p.isPublished }))}>
-                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${form.isPublished ? 'left-5' : 'left-1'}`} />
-              </div>
-              <span className="text-sm text-gray-300">Published</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <div className={`w-10 h-6 rounded-full transition-all ${form.isFeatured ? 'bg-orange-500' : 'bg-gray-700'} relative`} onClick={() => setForm(p => ({ ...p, isFeatured: !p.isFeatured }))}>
-                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${form.isFeatured ? 'left-5' : 'left-1'}`} />
-              </div>
-              <span className="text-sm text-gray-300">Featured on Home</span>
-            </label>
+
+            {/* Toggles */}
+            {([['isPublished', 'Published'], ['isFeatured', 'Featured on Home']] as const).map(([field, label]) => (
+              <label key={field} className="flex items-center justify-between cursor-pointer">
+                <span className="text-sm text-gray-300">{label}</span>
+                <div
+                  className={`w-10 h-6 rounded-full transition-all relative ${(form as any)[field] ? 'bg-orange-500' : 'bg-gray-700'}`}
+                  onClick={() => setForm(p => ({ ...p, [field]: !(p as any)[field] }))}
+                >
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${(form as any)[field] ? 'left-5' : 'left-1'}`} />
+                </div>
+              </label>
+            ))}
+
+            {/* Order */}
             <div>
               <label className="block text-xs text-gray-400 mb-1">Display Order</label>
-              <input type="number" value={form.order} onChange={e => setForm(p => ({ ...p, order: Number(e.target.value) }))}
-                className="w-full px-3 py-2.5 rounded-xl bg-[#0a0a0a] border border-gray-700 text-white text-sm focus:border-orange-500 focus:outline-none" />
-              <p className="text-[10px] text-gray-500 mt-1">Lower numbers appear first (e.g. 0 is first, 1 is second).</p>
+              <input
+                type="number"
+                value={form.order}
+                onChange={e => setForm(p => ({ ...p, order: Number(e.target.value) }))}
+                className="w-full px-3 py-2.5 rounded-xl bg-[#0a0a0a] border border-gray-700 text-white text-sm focus:border-orange-500 focus:outline-none"
+              />
+              <p className="text-[10px] text-gray-600 mt-1">Lower = appears first (0 is first)</p>
             </div>
-            <button onClick={handleSave} disabled={saving}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl gradient-bg text-white font-semibold text-sm hover:opacity-90 disabled:opacity-60">
-              {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><FiSave /> Save Project</>}
+
+            {/* Save */}
+            <button
+              onClick={handleSave}
+              disabled={saving || uploading}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl gradient-bg text-white font-semibold text-sm hover:opacity-90 disabled:opacity-50 transition-all"
+            >
+              {saving
+                ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving...</>
+                : <><FiSave /> {isEdit ? 'Update Project' : 'Create Project'}</>
+              }
             </button>
+
+            {/* Tips */}
+            <div className="pt-2 border-t border-gray-800 space-y-1.5">
+              <p className="text-[11px] text-gray-600 font-medium uppercase tracking-wider">Best Practices</p>
+              <p className="text-[11px] text-gray-600">📹 Use YouTube for videos — saves Cloudinary storage completely</p>
+              <p className="text-[11px] text-gray-600">🖼️ Images are auto-compressed to 1280px max width</p>
+              <p className="text-[11px] text-gray-600">🎬 YouTube thumbnails are free to use — no upload needed</p>
+            </div>
           </div>
         </div>
+
       </div>
     </div>
   );
